@@ -15,6 +15,7 @@ from nnunetv2.utilities.helpers import empty_cache, dummy_context
 # * equal contribution
 ######################################################
 
+
 class AbstractPrimus(nnUNetTrainer_warmup):
     def __init__(
         self,
@@ -118,7 +119,6 @@ class AbstractPrimus(nnUNetTrainer_warmup):
 
 
 class nnUNet_Primus_S_Trainer(AbstractPrimus):
-
     @staticmethod
     def build_network_architecture(
         plans_manager: PlansManager,
@@ -144,7 +144,6 @@ class nnUNet_Primus_S_Trainer(AbstractPrimus):
 
 
 class nnUNet_Primus_B_Trainer(AbstractPrimus):
-
     @staticmethod
     def build_network_architecture(
         plans_manager: PlansManager,
@@ -170,7 +169,6 @@ class nnUNet_Primus_B_Trainer(AbstractPrimus):
 
 
 class nnUNet_Primus_M_Trainer(AbstractPrimus):
-
     @staticmethod
     def build_network_architecture(
         plans_manager: PlansManager,
@@ -196,7 +194,6 @@ class nnUNet_Primus_M_Trainer(AbstractPrimus):
 
 
 class nnUNet_Primus_M_Trainer_BS8(nnUNet_Primus_M_Trainer):
-
     def __init__(
         self,
         plans: dict,
@@ -210,7 +207,6 @@ class nnUNet_Primus_M_Trainer_BS8(nnUNet_Primus_M_Trainer):
 
 
 class nnUNet_Primus_M_Trainer_BS8_2e4(nnUNet_Primus_M_Trainer):
-
     def __init__(
         self,
         plans: dict,
@@ -225,7 +221,6 @@ class nnUNet_Primus_M_Trainer_BS8_2e4(nnUNet_Primus_M_Trainer):
 
 
 class nnUNet_Trainer_BS8(nnUNetTrainer):
-
     def __init__(
         self,
         plans: dict,
@@ -239,7 +234,6 @@ class nnUNet_Trainer_BS8(nnUNetTrainer):
 
 
 class nnUNet_Primus_L_Trainer(AbstractPrimus):
-
     @staticmethod
     def build_network_architecture(
         plans_manager: PlansManager,

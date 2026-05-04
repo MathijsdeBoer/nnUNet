@@ -8,15 +8,19 @@ from scipy.ndimage import gaussian_filter
 
 
 @lru_cache(maxsize=2)
-def compute_gaussian(tile_size: Union[Tuple[int, ...], List[int]], sigma_scale: float = 1. / 8,
-                     value_scaling_factor: float = 1, dtype=torch.float16, device=torch.device('cuda', 0)) \
-        -> torch.Tensor:
+def compute_gaussian(
+    tile_size: Union[Tuple[int, ...], List[int]],
+    sigma_scale: float = 1.0 / 8,
+    value_scaling_factor: float = 1,
+    dtype=torch.float16,
+    device=torch.device("cuda", 0),
+) -> torch.Tensor:
     tmp = np.zeros(tile_size)
     center_coords = [i // 2 for i in tile_size]
     sigmas = [i * sigma_scale for i in tile_size]
     tmp[tuple(center_coords)] = 1
-    gaussian_importance_map = gaussian_filter(tmp, sigmas, 0, mode='constant', cval=0)
-    gaussian_importance_map /= (np.max(gaussian_importance_map) / value_scaling_factor)
+    gaussian_importance_map = gaussian_filter(tmp, sigmas, 0, mode="constant", cval=0)
+    gaussian_importance_map /= np.max(gaussian_importance_map) / value_scaling_factor
 
     gaussian_importance_map = torch.from_numpy(gaussian_importance_map)
 
@@ -27,10 +31,11 @@ def compute_gaussian(tile_size: Union[Tuple[int, ...], List[int]], sigma_scale: 
     return gaussian_importance_map
 
 
-def compute_steps_for_sliding_window(image_size: Tuple[int, ...], tile_size: Tuple[int, ...], tile_step_size: float) -> \
-        List[List[int]]:
+def compute_steps_for_sliding_window(
+    image_size: Tuple[int, ...], tile_size: Tuple[int, ...], tile_step_size: float
+) -> List[List[int]]:
     assert [i >= j for i, j in zip(image_size, tile_size)], "image size must be as large or larger than patch_size"
-    assert 0 < tile_step_size <= 1, 'step_size must be larger than 0 and smaller or equal to 1'
+    assert 0 < tile_step_size <= 1, "step_size must be larger than 0 and smaller or equal to 1"
 
     # our step width is patch_size*step_size at most, but can be narrower. For example if we have image size of
     # 110, patch size of 64 and step_size of 0.5, then we want to make 3 steps starting at coordinate 0, 23, 46
@@ -54,7 +59,7 @@ def compute_steps_for_sliding_window(image_size: Tuple[int, ...], tile_size: Tup
     return steps
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     a = torch.rand((4, 2, 32, 23))
     a_npy = a.numpy()
 

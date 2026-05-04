@@ -22,41 +22,51 @@ def convert_amos_task2(amos_base_dir: str, nnunet_dataset_id: int = 219):
     maybe_mkdir_p(imagests)
     maybe_mkdir_p(labelstr)
 
-    dataset_json_source = load_json(join(amos_base_dir, 'dataset.json'))
+    dataset_json_source = load_json(join(amos_base_dir, "dataset.json"))
 
-    training_identifiers = [i['image'].split('/')[-1][:-7] for i in dataset_json_source['training']]
+    training_identifiers = [i["image"].split("/")[-1][:-7] for i in dataset_json_source["training"]]
     for tr in training_identifiers:
-        shutil.copy(join(amos_base_dir, 'imagesTr', tr + '.nii.gz'), join(imagestr, f'{tr}_0000.nii.gz'))
-        shutil.copy(join(amos_base_dir, 'labelsTr', tr + '.nii.gz'), join(labelstr, f'{tr}.nii.gz'))
+        shutil.copy(join(amos_base_dir, "imagesTr", tr + ".nii.gz"), join(imagestr, f"{tr}_0000.nii.gz"))
+        shutil.copy(join(amos_base_dir, "labelsTr", tr + ".nii.gz"), join(labelstr, f"{tr}.nii.gz"))
 
-    test_identifiers = [i['image'].split('/')[-1][:-7] for i in dataset_json_source['test']]
+    test_identifiers = [i["image"].split("/")[-1][:-7] for i in dataset_json_source["test"]]
     for ts in test_identifiers:
-        shutil.copy(join(amos_base_dir, 'imagesTs', ts + '.nii.gz'), join(imagests, f'{ts}_0000.nii.gz'))
+        shutil.copy(join(amos_base_dir, "imagesTs", ts + ".nii.gz"), join(imagests, f"{ts}_0000.nii.gz"))
 
-    val_identifiers = [i['image'].split('/')[-1][:-7] for i in dataset_json_source['validation']]
+    val_identifiers = [i["image"].split("/")[-1][:-7] for i in dataset_json_source["validation"]]
     for vl in val_identifiers:
-        shutil.copy(join(amos_base_dir, 'imagesVa', vl + '.nii.gz'), join(imagestr, f'{vl}_0000.nii.gz'))
-        shutil.copy(join(amos_base_dir, 'labelsVa', vl + '.nii.gz'), join(labelstr, f'{vl}.nii.gz'))
+        shutil.copy(join(amos_base_dir, "imagesVa", vl + ".nii.gz"), join(imagestr, f"{vl}_0000.nii.gz"))
+        shutil.copy(join(amos_base_dir, "labelsVa", vl + ".nii.gz"), join(labelstr, f"{vl}.nii.gz"))
 
-    generate_dataset_json(out_base, {0: "either_CT_or_MR"}, labels={v: int(k) for k,v in dataset_json_source['labels'].items()},
-                          num_training_cases=len(training_identifiers) + len(val_identifiers), file_ending='.nii.gz',
-                          dataset_name=task_name, reference='https://amos22.grand-challenge.org/',
-                          release='https://zenodo.org/record/7262581',
-                          overwrite_image_reader_writer='NibabelIOWithReorient',
-                          description="This is the dataset as released AFTER the challenge event. It has the "
-                                      "validation set gt in it! We just use the validation images as additional "
-                                      "training cases because AMOS doesn't specify how they should be used. nnU-Net's"
-                                      " 5-fold CV is better than some random train:val split.")
+    generate_dataset_json(
+        out_base,
+        {0: "either_CT_or_MR"},
+        labels={v: int(k) for k, v in dataset_json_source["labels"].items()},
+        num_training_cases=len(training_identifiers) + len(val_identifiers),
+        file_ending=".nii.gz",
+        dataset_name=task_name,
+        reference="https://amos22.grand-challenge.org/",
+        release="https://zenodo.org/record/7262581",
+        overwrite_image_reader_writer="NibabelIOWithReorient",
+        description="This is the dataset as released AFTER the challenge event. It has the "
+        "validation set gt in it! We just use the validation images as additional "
+        "training cases because AMOS doesn't specify how they should be used. nnU-Net's"
+        " 5-fold CV is better than some random train:val split.",
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_folder', type=str,
-                        help="The downloaded and extracted AMOS2022 (https://amos22.grand-challenge.org/) data. "
-                             "Use this link: https://zenodo.org/record/7262581."
-                             "You need to specify the folder with the imagesTr, imagesVal, labelsTr etc subfolders here!")
-    parser.add_argument('-d', required=False, type=int, default=219, help='nnU-Net Dataset ID, default: 219')
+    parser.add_argument(
+        "input_folder",
+        type=str,
+        help="The downloaded and extracted AMOS2022 (https://amos22.grand-challenge.org/) data. "
+        "Use this link: https://zenodo.org/record/7262581."
+        "You need to specify the folder with the imagesTr, imagesVal, labelsTr etc subfolders here!",
+    )
+    parser.add_argument("-d", required=False, type=int, default=219, help="nnU-Net Dataset ID, default: 219")
     args = parser.parse_args()
     amos_base = args.input_folder
     convert_amos_task2(amos_base, args.d)

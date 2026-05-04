@@ -16,8 +16,8 @@ class nnUNetBaseDataset(ABC):
     """
     Defines the interface
     """
-    def __init__(self, folder: str, identifiers: List[str] = None,
-                 folder_with_segs_from_previous_stage: str = None):
+
+    def __init__(self, folder: str, identifiers: List[str] = None, folder_with_segs_from_previous_stage: str = None):
         super().__init__()
         # print('loading dataset')
         if identifiers is None:
@@ -37,12 +37,7 @@ class nnUNetBaseDataset(ABC):
 
     @staticmethod
     @abstractmethod
-    def save_case(
-            data: np.ndarray,
-            seg: np.ndarray,
-            properties: dict,
-            output_filename_truncated: str
-            ):
+    def save_case(data: np.ndarray, seg: np.ndarray, properties: dict, output_filename_truncated: str):
         pass
 
     @staticmethod
@@ -51,54 +46,46 @@ class nnUNetBaseDataset(ABC):
         pass
 
     @staticmethod
-    def unpack_dataset(folder: str, overwrite_existing: bool = False,
-                       num_processes: int = default_num_processes,
-                       verify: bool = True):
+    def unpack_dataset(
+        folder: str, overwrite_existing: bool = False, num_processes: int = default_num_processes, verify: bool = True
+    ):
         pass
 
 
 class nnUNetDatasetNumpy(nnUNetBaseDataset):
     def load_case(self, identifier):
-        data_npy_file = join(self.source_folder, identifier + '.npy')
+        data_npy_file = join(self.source_folder, identifier + ".npy")
         if not isfile(data_npy_file):
-            data = np.load(join(self.source_folder, identifier + '.npz'))['data']
+            data = np.load(join(self.source_folder, identifier + ".npz"))["data"]
         else:
-            data = np.load(data_npy_file, mmap_mode='r')
+            data = np.load(data_npy_file, mmap_mode="r")
 
-        seg_npy_file = join(self.source_folder, identifier + '_seg.npy')
+        seg_npy_file = join(self.source_folder, identifier + "_seg.npy")
         if not isfile(seg_npy_file):
-            seg = np.load(join(self.source_folder, identifier + '.npz'))['seg']
+            seg = np.load(join(self.source_folder, identifier + ".npz"))["seg"]
         else:
-            seg = np.load(seg_npy_file, mmap_mode='r')
+            seg = np.load(seg_npy_file, mmap_mode="r")
 
         if self.folder_with_segs_from_previous_stage is not None:
-            prev_seg_npy_file = join(self.folder_with_segs_from_previous_stage, identifier + '.npy')
+            prev_seg_npy_file = join(self.folder_with_segs_from_previous_stage, identifier + ".npy")
             if isfile(prev_seg_npy_file):
-                seg_prev = np.load(prev_seg_npy_file, 'r')
+                seg_prev = np.load(prev_seg_npy_file, "r")
             else:
-                seg_prev = np.load(join(self.folder_with_segs_from_previous_stage, identifier + '.npz'))['seg']
+                seg_prev = np.load(join(self.folder_with_segs_from_previous_stage, identifier + ".npz"))["seg"]
         else:
             seg_prev = None
 
-        properties = load_pickle(join(self.source_folder, identifier + '.pkl'))
+        properties = load_pickle(join(self.source_folder, identifier + ".pkl"))
         return data, seg, seg_prev, properties
 
     @staticmethod
-    def save_case(
-            data: np.ndarray,
-            seg: np.ndarray,
-            properties: dict,
-            output_filename_truncated: str
-    ):
-        np.savez_compressed(output_filename_truncated + '.npz', data=data, seg=seg)
-        write_pickle(properties, output_filename_truncated + '.pkl')
+    def save_case(data: np.ndarray, seg: np.ndarray, properties: dict, output_filename_truncated: str):
+        np.savez_compressed(output_filename_truncated + ".npz", data=data, seg=seg)
+        write_pickle(properties, output_filename_truncated + ".pkl")
 
     @staticmethod
-    def save_seg(
-            seg: np.ndarray,
-            output_filename_truncated: str
-    ):
-        np.savez_compressed(output_filename_truncated + '.npz', seg=seg)
+    def save_seg(seg: np.ndarray, output_filename_truncated: str):
+        np.savez_compressed(output_filename_truncated + ".npz", seg=seg)
 
     @staticmethod
     def get_identifiers(folder: str) -> List[str]:
@@ -109,15 +96,14 @@ class nnUNetDatasetNumpy(nnUNetBaseDataset):
         return case_identifiers
 
     @staticmethod
-    def unpack_dataset(folder: str, overwrite_existing: bool = False,
-                       num_processes: int = default_num_processes,
-                       verify: bool = True):
+    def unpack_dataset(
+        folder: str, overwrite_existing: bool = False, num_processes: int = default_num_processes, verify: bool = True
+    ):
         return unpack_dataset(folder, True, overwrite_existing, num_processes, verify)
 
 
 class nnUNetDatasetBlosc2(nnUNetBaseDataset):
-    def __init__(self, folder: str, identifiers: List[str] = None,
-                 folder_with_segs_from_previous_stage: str = None):
+    def __init__(self, folder: str, identifiers: List[str] = None, folder_with_segs_from_previous_stage: str = None):
         super().__init__(folder, identifiers, folder_with_segs_from_previous_stage)
         blosc2.set_nthreads(1)
 
@@ -125,49 +111,50 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
         return self.load_case(identifier)
 
     def load_case(self, identifier):
-        dparams = {
-            'nthreads': 1
-        }
-        data_b2nd_file = join(self.source_folder, identifier + '.b2nd')
+        dparams = {"nthreads": 1}
+        data_b2nd_file = join(self.source_folder, identifier + ".b2nd")
 
         # mmap does not work with Windows -> https://github.com/MIC-DKFZ/nnUNet/issues/2723
-        mmap_kwargs = {} if os.name == "nt" else {'mmap_mode': 'r'}
-        data = blosc2.open(urlpath=data_b2nd_file, mode='r', dparams=dparams, **mmap_kwargs)
+        mmap_kwargs = {} if os.name == "nt" else {"mmap_mode": "r"}
+        data = blosc2.open(urlpath=data_b2nd_file, mode="r", dparams=dparams, **mmap_kwargs)
 
-        seg_b2nd_file = join(self.source_folder, identifier + '_seg.b2nd')
-        seg = blosc2.open(urlpath=seg_b2nd_file, mode='r', dparams=dparams, **mmap_kwargs)
+        seg_b2nd_file = join(self.source_folder, identifier + "_seg.b2nd")
+        seg = blosc2.open(urlpath=seg_b2nd_file, mode="r", dparams=dparams, **mmap_kwargs)
 
         if self.folder_with_segs_from_previous_stage is not None:
-            prev_seg_b2nd_file = join(self.folder_with_segs_from_previous_stage, identifier + '.b2nd')
-            seg_prev = blosc2.open(urlpath=prev_seg_b2nd_file, mode='r', dparams=dparams, **mmap_kwargs)
+            prev_seg_b2nd_file = join(self.folder_with_segs_from_previous_stage, identifier + ".b2nd")
+            seg_prev = blosc2.open(urlpath=prev_seg_b2nd_file, mode="r", dparams=dparams, **mmap_kwargs)
         else:
             seg_prev = None
 
-        properties = load_pickle(join(self.source_folder, identifier + '.pkl'))
+        properties = load_pickle(join(self.source_folder, identifier + ".pkl"))
         return data, seg, seg_prev, properties
 
     @staticmethod
     def save_case(
-            data: np.ndarray,
-            seg: np.ndarray,
-            properties: dict,
-            output_filename_truncated: str,
-            chunks=None,
-            blocks=None,
-            chunks_seg=None,
-            blocks_seg=None,
-            clevel: int = 8,
-            codec=blosc2.Codec.LZ4HC
+        data: np.ndarray,
+        seg: np.ndarray,
+        properties: dict,
+        output_filename_truncated: str,
+        chunks=None,
+        blocks=None,
+        chunks_seg=None,
+        blocks_seg=None,
+        clevel: int = 8,
+        codec=blosc2.Codec.LZ4HC,
     ):
         if chunks is None or blocks is None:
             from warnings import warn
+
             blocks, chunks = nnUNetDatasetBlosc2.comp_blosc2_params(data.shape, (128, 128, 128))
-            warn(f'Warning: Received empty chunks or blocks. Computed with comp_blosc2_params. This is bad because we '
-                 f'do not know the access pattern here (patch size). This should be fixed and not ignored. '
-                 f'Raise an issue at github.com/MIC-DKFZ/nnUNet\n'
-                 f'data shape: {data.shape}\n'
-                 f'chunks {chunks}\n'
-                 f'blocks {blocks}\n')
+            warn(
+                f"Warning: Received empty chunks or blocks. Computed with comp_blosc2_params. This is bad because we "
+                f"do not know the access pattern here (patch size). This should be fixed and not ignored. "
+                f"Raise an issue at github.com/MIC-DKFZ/nnUNet\n"
+                f"data shape: {data.shape}\n"
+                f"chunks {chunks}\n"
+                f"blocks {blocks}\n"
+            )
 
         blosc2.set_nthreads(1)
         if chunks_seg is None:
@@ -176,28 +163,33 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
             blocks_seg = blocks
 
         cparams = {
-            'codec': codec,
+            "codec": codec,
             # 'filters': [blosc2.Filter.SHUFFLE],
             # 'splitmode': blosc2.SplitMode.ALWAYS_SPLIT,
-            'clevel': clevel,
+            "clevel": clevel,
         }
         # print(output_filename_truncated, data.shape, seg.shape, blocks, chunks, blocks_seg, chunks_seg, data.dtype, seg.dtype)
-        blosc2.asarray(np.ascontiguousarray(data), urlpath=output_filename_truncated + '.b2nd', chunks=chunks,
-                       blocks=blocks, cparams=cparams)
-        blosc2.asarray(np.ascontiguousarray(seg), urlpath=output_filename_truncated + '_seg.b2nd', chunks=chunks_seg,
-                       blocks=blocks_seg, cparams=cparams)
-        write_pickle(properties, output_filename_truncated + '.pkl')
+        blosc2.asarray(
+            np.ascontiguousarray(data),
+            urlpath=output_filename_truncated + ".b2nd",
+            chunks=chunks,
+            blocks=blocks,
+            cparams=cparams,
+        )
+        blosc2.asarray(
+            np.ascontiguousarray(seg),
+            urlpath=output_filename_truncated + "_seg.b2nd",
+            chunks=chunks_seg,
+            blocks=blocks_seg,
+            cparams=cparams,
+        )
+        write_pickle(properties, output_filename_truncated + ".pkl")
 
     @staticmethod
-    def save_seg(
-            seg: np.ndarray,
-            output_filename_truncated: str,
-            chunks_seg=None,
-            blocks_seg=None
-    ):
-        if isfile(output_filename_truncated + '.b2nd'):
-            os.remove(output_filename_truncated + '.b2nd')
-        blosc2.asarray(seg, urlpath=output_filename_truncated + '.b2nd', chunks=chunks_seg, blocks=blocks_seg)
+    def save_seg(seg: np.ndarray, output_filename_truncated: str, chunks_seg=None, blocks_seg=None):
+        if isfile(output_filename_truncated + ".b2nd"):
+            os.remove(output_filename_truncated + ".b2nd")
+        blosc2.asarray(seg, urlpath=output_filename_truncated + ".b2nd", chunks=chunks_seg, blocks=blocks_seg)
 
     @staticmethod
     def get_identifiers(folder: str) -> List[str]:
@@ -208,20 +200,20 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
         return case_identifiers
 
     @staticmethod
-    def unpack_dataset(folder: str, overwrite_existing: bool = False,
-                       num_processes: int = default_num_processes,
-                       verify: bool = True):
+    def unpack_dataset(
+        folder: str, overwrite_existing: bool = False, num_processes: int = default_num_processes, verify: bool = True
+    ):
         pass
 
     @staticmethod
     def comp_blosc2_params(
-            image_size: Tuple[int, int, int, int],
-            patch_size: Union[Tuple[int, int], Tuple[int, int, int]],
-            bytes_per_pixel: int = 4,  # 4 byte are float32
-            l1_cache_size_per_core_in_bytes=32768 * 4,
-            l3_cache_size_per_core_in_bytes=1441792 * 4,
-            # 1 Mibibyte (MiB) = 2^20 Byte = 1.048.576 Byte; 1.375MiB = 1441792 Byte
-            safety_factor: float = 0.8  # we dont will the caches to the brim. 0.8 means we target 80% of the caches
+        image_size: Tuple[int, int, int, int],
+        patch_size: Union[Tuple[int, int], Tuple[int, int, int]],
+        bytes_per_pixel: int = 4,  # 4 byte are float32
+        l1_cache_size_per_core_in_bytes=32768 * 4,
+        l3_cache_size_per_core_in_bytes=1441792 * 4,
+        # 1 Mibibyte (MiB) = 2^20 Byte = 1.048.576 Byte; 1.375MiB = 1441792 Byte
+        safety_factor: float = 0.8,  # we dont will the caches to the brim. 0.8 means we target 80% of the caches
     ):
         """
         Computes a recommended block and chunk size for saving arrays with blosc v2.
@@ -304,18 +296,16 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
         return tuple(block_size), tuple(chunk_size)
 
 
-file_ending_dataset_mapping = {
-    'npz': nnUNetDatasetNumpy,
-    'b2nd': nnUNetDatasetBlosc2
-}
+file_ending_dataset_mapping = {"npz": nnUNetDatasetNumpy, "b2nd": nnUNetDatasetBlosc2}
 
 
 def infer_dataset_class(folder: str) -> Union[Type[nnUNetDatasetBlosc2], Type[nnUNetDatasetNumpy]]:
-    file_endings = set([os.path.basename(i).split('.')[-1] for i in subfiles(folder, join=False)])
-    if 'pkl' in file_endings:
-        file_endings.remove('pkl')
-    if 'npy' in file_endings:
-        file_endings.remove('npy')
-    assert len(file_endings) == 1, (f'Found more than one file ending in the folder {folder}. '
-                                    f'Unable to infer nnUNetDataset variant!')
+    file_endings = set([os.path.basename(i).split(".")[-1] for i in subfiles(folder, join=False)])
+    if "pkl" in file_endings:
+        file_endings.remove("pkl")
+    if "npy" in file_endings:
+        file_endings.remove("npy")
+    assert len(file_endings) == 1, (
+        f"Found more than one file ending in the folder {folder}. Unable to infer nnUNetDataset variant!"
+    )
     return file_ending_dataset_mapping[list(file_endings)[0]]

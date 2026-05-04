@@ -31,7 +31,7 @@ class DatasetFingerprintExtractor(object):
         self.dataset_name = dataset_name
         self.input_folder = join(nnUNet_raw, dataset_name)
         self.num_processes = num_processes
-        self.dataset_json = load_json(join(self.input_folder, 'dataset.json'))
+        self.dataset_json = load_json(join(self.input_folder, "dataset.json"))
         self.dataset = get_filenames_of_train_images_and_targets(self.input_folder, self.dataset_json)
 
         # We don't want to use all foreground voxels because that can accumulate a lot of data (out of memory). It is
@@ -40,8 +40,9 @@ class DatasetFingerprintExtractor(object):
         self.num_foreground_voxels_for_intensitystats = 10e7
 
     @staticmethod
-    def collect_foreground_intensities(segmentation: np.ndarray, images: np.ndarray, seed: int = 1234,
-                                       num_samples: int = 10000):
+    def collect_foreground_intensities(
+        segmentation: np.ndarray, images: np.ndarray, seed: int = 1234, num_samples: int = 10000
+    ):
         """
         images=image with multiple channels = shape (c, x, y(, z))
         """
@@ -66,7 +67,8 @@ class DatasetFingerprintExtractor(object):
             # foreground_pixels. We could also just sample less in those cases but that would than cause these
             # training cases to be underrepresented
             intensities_per_channel.append(
-                rs.choice(foreground_pixels, num_samples, replace=True) if num_fg > 0 else [])
+                rs.choice(foreground_pixels, num_samples, replace=True) if num_fg > 0 else []
+            )
 
             mean, median, mini, maxi, percentile_99_5, percentile_00_5 = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
             if num_fg > 0:
@@ -75,21 +77,26 @@ class DatasetFingerprintExtractor(object):
                 mini = np.min(foreground_pixels)
                 maxi = np.max(foreground_pixels)
 
-            intensity_statistics_per_channel.append({
-                'mean': mean,
-                'median': median,
-                'min': mini,
-                'max': maxi,
-                'percentile_99_5': percentile_99_5,
-                'percentile_00_5': percentile_00_5,
-
-            })
+            intensity_statistics_per_channel.append(
+                {
+                    "mean": mean,
+                    "median": median,
+                    "min": mini,
+                    "max": maxi,
+                    "percentile_99_5": percentile_99_5,
+                    "percentile_00_5": percentile_00_5,
+                }
+            )
 
         return intensities_per_channel, intensity_statistics_per_channel
 
     @staticmethod
-    def analyze_case(image_files: List[str], segmentation_file: str, reader_writer_class: Type[BaseReaderWriter],
-                     num_samples: int = 10000):
+    def analyze_case(
+        image_files: List[str],
+        segmentation_file: str,
+        reader_writer_class: Type[BaseReaderWriter],
+        num_samples: int = 10000,
+    ):
         rw = reader_writer_class()
         images, properties_images = rw.read_images(image_files)
         segmentation, properties_seg = rw.read_seg(segmentation_file)
@@ -100,56 +107,79 @@ class DatasetFingerprintExtractor(object):
         # way. This is only possible because we are now using our new input/output interface.
         data_cropped, seg_cropped, bbox = crop_to_nonzero(images, segmentation)
 
-        foreground_intensities_per_channel, foreground_intensity_stats_per_channel = \
-            DatasetFingerprintExtractor.collect_foreground_intensities(seg_cropped, data_cropped,
-                                                                       num_samples=num_samples)
+        foreground_intensities_per_channel, foreground_intensity_stats_per_channel = (
+            DatasetFingerprintExtractor.collect_foreground_intensities(
+                seg_cropped, data_cropped, num_samples=num_samples
+            )
+        )
 
-        spacing = properties_images['spacing']
+        spacing = properties_images["spacing"]
 
         shape_before_crop = images.shape[1:]
         shape_after_crop = data_cropped.shape[1:]
         relative_size_after_cropping = np.prod(shape_after_crop) / np.prod(shape_before_crop)
-        return shape_after_crop, spacing, foreground_intensities_per_channel, foreground_intensity_stats_per_channel, \
-               relative_size_after_cropping
+        return (
+            shape_after_crop,
+            spacing,
+            foreground_intensities_per_channel,
+            foreground_intensity_stats_per_channel,
+            relative_size_after_cropping,
+        )
 
     def run(self, overwrite_existing: bool = False) -> dict:
         # we do not save the properties file in self.input_folder because that folder might be read-only. We can only
         # reliably write in nnUNet_preprocessed and nnUNet_results, so nnUNet_preprocessed it is
         preprocessed_output_folder = join(nnUNet_preprocessed, self.dataset_name)
         maybe_mkdir_p(preprocessed_output_folder)
-        properties_file = join(preprocessed_output_folder, 'dataset_fingerprint.json')
+        properties_file = join(preprocessed_output_folder, "dataset_fingerprint.json")
 
         if not isfile(properties_file) or overwrite_existing:
-            reader_writer_class = determine_reader_writer_from_dataset_json(self.dataset_json,
-                                                                            # yikes. Rip the following line
-                                                                            self.dataset[self.dataset.keys().__iter__().__next__()]['images'][0])
+            reader_writer_class = determine_reader_writer_from_dataset_json(
+                self.dataset_json,
+                # yikes. Rip the following line
+                self.dataset[self.dataset.keys().__iter__().__next__()]["images"][0],
+            )
 
             # determine how many foreground voxels we need to sample per training case
-            num_foreground_samples_per_case = int(self.num_foreground_voxels_for_intensitystats //
-                                                  len(self.dataset))
+            num_foreground_samples_per_case = int(self.num_foreground_voxels_for_intensitystats // len(self.dataset))
 
             r = []
             with multiprocessing.get_context("spawn").Pool(self.num_processes) as p:
                 for k in self.dataset.keys():
-                    r.append(p.starmap_async(DatasetFingerprintExtractor.analyze_case,
-                                             ((self.dataset[k]['images'], self.dataset[k]['label'], reader_writer_class,
-                                               num_foreground_samples_per_case),)))
+                    r.append(
+                        p.starmap_async(
+                            DatasetFingerprintExtractor.analyze_case,
+                            (
+                                (
+                                    self.dataset[k]["images"],
+                                    self.dataset[k]["label"],
+                                    reader_writer_class,
+                                    num_foreground_samples_per_case,
+                                ),
+                            ),
+                        )
+                    )
                 remaining = list(range(len(self.dataset)))
                 # p is pretty nifti. If we kill workers they just respawn but don't do any work.
                 # So we need to store the original pool of workers.
                 workers = [j for j in p._pool]
-                with tqdm(desc="Extracting dataset fingerprint", total=len(self.dataset),
-                          disable=not getattr(self, 'show_progress_bar', True)) as pbar:
+                with tqdm(
+                    desc="Extracting dataset fingerprint",
+                    total=len(self.dataset),
+                    disable=not getattr(self, "show_progress_bar", True),
+                ) as pbar:
                     while len(remaining) > 0:
                         all_alive = all([j.is_alive() for j in workers])
                         if not all_alive:
-                            raise RuntimeError('Some background worker is 6 feet under. Yuck. \n'
-                                               'OK jokes aside.\n'
-                                               'One of your background processes is missing. This could be because of '
-                                               'an error (look for an error message) or because it was killed '
-                                               'by your OS due to running out of RAM. If you don\'t see '
-                                               'an error message, out of RAM is likely the problem. In that case '
-                                               'reducing the number of workers might help')
+                            raise RuntimeError(
+                                "Some background worker is 6 feet under. Yuck. \n"
+                                "OK jokes aside.\n"
+                                "One of your background processes is missing. This could be because of "
+                                "an error (look for an error message) or because it was killed "
+                                "by your OS due to running out of RAM. If you don't see "
+                                "an error message, out of RAM is likely the problem. In that case "
+                                "reducing the number of workers might help"
+                            )
                         done = [i for i in remaining if r[i].ready()]
                         for _ in done:
                             pbar.update()
@@ -164,36 +194,40 @@ class DatasetFingerprintExtractor(object):
 
             shapes_after_crop = [r[0] for r in results]
             spacings = [r[1] for r in results]
-            foreground_intensities_per_channel = [np.concatenate([r[2][i] for r in results]) for i in
-                                                  range(len(results[0][2]))]
+            foreground_intensities_per_channel = [
+                np.concatenate([r[2][i] for r in results]) for i in range(len(results[0][2]))
+            ]
             foreground_intensities_per_channel = np.array(foreground_intensities_per_channel)
             # we drop this so that the json file is somewhat human readable
             # foreground_intensity_stats_by_case_and_modality = [r[3] for r in results]
             median_relative_size_after_cropping = np.median([r[4] for r in results], 0)
-            num_channels = len(self.dataset_json['channel_names'].keys()
-                                 if 'channel_names' in self.dataset_json.keys()
-                                 else self.dataset_json['modality'].keys())
+            num_channels = len(
+                self.dataset_json["channel_names"].keys()
+                if "channel_names" in self.dataset_json.keys()
+                else self.dataset_json["modality"].keys()
+            )
             intensity_statistics_per_channel = {}
             percentiles = np.array((0.5, 50.0, 99.5))
             for i in range(num_channels):
-                percentile_00_5, median, percentile_99_5 = np.percentile(foreground_intensities_per_channel[i],
-                                                                         percentiles)
+                percentile_00_5, median, percentile_99_5 = np.percentile(
+                    foreground_intensities_per_channel[i], percentiles
+                )
                 intensity_statistics_per_channel[i] = {
-                    'mean': float(np.mean(foreground_intensities_per_channel[i])),
-                    'median': float(median),
-                    'std': float(np.std(foreground_intensities_per_channel[i])),
-                    'min': float(np.min(foreground_intensities_per_channel[i])),
-                    'max': float(np.max(foreground_intensities_per_channel[i])),
-                    'percentile_99_5': float(percentile_99_5),
-                    'percentile_00_5': float(percentile_00_5),
+                    "mean": float(np.mean(foreground_intensities_per_channel[i])),
+                    "median": float(median),
+                    "std": float(np.std(foreground_intensities_per_channel[i])),
+                    "min": float(np.min(foreground_intensities_per_channel[i])),
+                    "max": float(np.max(foreground_intensities_per_channel[i])),
+                    "percentile_99_5": float(percentile_99_5),
+                    "percentile_00_5": float(percentile_00_5),
                 }
 
             fingerprint = {
-                    "spacings": spacings,
-                    "shapes_after_crop": shapes_after_crop,
-                    'foreground_intensity_properties_per_channel': intensity_statistics_per_channel,
-                    "median_relative_size_after_cropping": median_relative_size_after_cropping
-                }
+                "spacings": spacings,
+                "shapes_after_crop": shapes_after_crop,
+                "foreground_intensity_properties_per_channel": intensity_statistics_per_channel,
+                "median_relative_size_after_cropping": median_relative_size_after_cropping,
+            }
 
             try:
                 save_json(fingerprint, properties_file)
@@ -206,6 +240,6 @@ class DatasetFingerprintExtractor(object):
         return fingerprint
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     dfe = DatasetFingerprintExtractor(2, 8)
     dfe.run(overwrite_existing=False)

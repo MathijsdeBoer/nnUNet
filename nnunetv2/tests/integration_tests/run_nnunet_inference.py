@@ -25,10 +25,16 @@ def run_tests_and_exit_on_failure():
 
     # Copy example file
     os.makedirs("nnunetv2/tests/github_actions_output", exist_ok=True)
-    shutil.copy("nnunetv2/tests/example_data/example_ct_sm.nii.gz", "nnunetv2/tests/github_actions_output/example_ct_sm_0000.nii.gz")
+    shutil.copy(
+        "nnunetv2/tests/example_data/example_ct_sm.nii.gz",
+        "nnunetv2/tests/github_actions_output/example_ct_sm_0000.nii.gz",
+    )
 
     # Run nnunet
-    subprocess.call("nnUNetv2_predict -i nnunetv2/tests/github_actions_output -o nnunetv2/tests/github_actions_output -d 300 -tr nnUNetTrainer -c 3d_fullres -f 0 -device cpu", shell=True)
+    subprocess.call(
+        "nnUNetv2_predict -i nnunetv2/tests/github_actions_output -o nnunetv2/tests/github_actions_output -d 300 -tr nnUNetTrainer -c 3d_fullres -f 0 -device cpu",
+        shell=True,
+    )
 
     # Check if the nnunet segmentation is correct
     img_gt = nib.load("nnunetv2/tests/example_data/example_ct_sm_T300_output.nii.gz").get_fdata()

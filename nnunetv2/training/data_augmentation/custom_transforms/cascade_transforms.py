@@ -8,8 +8,14 @@ from skimage.morphology.binary import binary_erosion, binary_dilation, binary_cl
 
 
 class MoveSegAsOneHotToData(AbstractTransform):
-    def __init__(self, index_in_origin: int, all_labels: Union[Tuple[int, ...], List[int]],
-                 key_origin="seg", key_target="data", remove_from_origin=True):
+    def __init__(
+        self,
+        index_in_origin: int,
+        all_labels: Union[Tuple[int, ...], List[int]],
+        key_origin="seg",
+        key_target="data",
+        remove_from_origin=True,
+    ):
         """
         Takes data_dict[seg][:, index_in_origin], converts it to one hot encoding and appends it to
         data_dict[key_target]. Optionally removes index_in_origin from data_dict[seg].
@@ -21,10 +27,11 @@ class MoveSegAsOneHotToData(AbstractTransform):
         self.index_in_origin = index_in_origin
 
     def __call__(self, **data_dict):
-        seg = data_dict[self.key_origin][:, self.index_in_origin:self.index_in_origin+1]
+        seg = data_dict[self.key_origin][:, self.index_in_origin : self.index_in_origin + 1]
 
-        seg_onehot = np.zeros((seg.shape[0], len(self.all_labels), *seg.shape[2:]),
-                              dtype=data_dict[self.key_target].dtype)
+        seg_onehot = np.zeros(
+            (seg.shape[0], len(self.all_labels), *seg.shape[2:]), dtype=data_dict[self.key_target].dtype
+        )
         for i, l in enumerate(self.all_labels):
             seg_onehot[:, i][seg[:, 0] == l] = 1
 
@@ -38,9 +45,15 @@ class MoveSegAsOneHotToData(AbstractTransform):
 
 
 class RemoveRandomConnectedComponentFromOneHotEncodingTransform(AbstractTransform):
-    def __init__(self, channel_idx: Union[int, List[int]], key: str = "data", p_per_sample: float = 0.2,
-                 fill_with_other_class_p: float = 0.25,
-                 dont_do_if_covers_more_than_x_percent: float = 0.25, p_per_label: float = 1):
+    def __init__(
+        self,
+        channel_idx: Union[int, List[int]],
+        key: str = "data",
+        p_per_sample: float = 0.2,
+        fill_with_other_class_p: float = 0.25,
+        dont_do_if_covers_more_than_x_percent: float = 0.25,
+        p_per_label: float = 1,
+    ):
         """
         Randomly removes connected components in the specified channel_idx of data_dict[key]. Only considers components
         smaller than dont_do_if_covers_more_than_X_percent of the sample. Also has the option of simulating
@@ -68,8 +81,11 @@ class RemoveRandomConnectedComponentFromOneHotEncodingTransform(AbstractTransfor
                         num_voxels = np.prod(workon.shape, dtype=np.uint64)
                         lab, component_sizes = label_with_component_sizes(workon.astype(bool))
                         if len(component_sizes) > 0:
-                            valid_component_ids = [i for i, j in component_sizes.items() if j <
-                                                   num_voxels*self.dont_do_if_covers_more_than_x_percent]
+                            valid_component_ids = [
+                                i
+                                for i, j in component_sizes.items()
+                                if j < num_voxels * self.dont_do_if_covers_more_than_x_percent
+                            ]
                             # print('RemoveRandomConnectedComponentFromOneHotEncodingTransform', c,
                             # np.unique(data[b, c]), len(component_sizes), valid_component_ids,
                             # len(valid_component_ids))
@@ -86,13 +102,15 @@ class RemoveRandomConnectedComponentFromOneHotEncodingTransform(AbstractTransfor
 
 
 class ApplyRandomBinaryOperatorTransform(AbstractTransform):
-    def __init__(self,
-                 channel_idx: Union[int, List[int], Tuple[int, ...]],
-                 p_per_sample: float = 0.3,
-                 any_of_these: Tuple[Callable] = (binary_dilation, binary_erosion, binary_closing, binary_opening),
-                 key: str = "data",
-                 strel_size: Tuple[int, int] = (1, 10),
-                 p_per_label: float = 1):
+    def __init__(
+        self,
+        channel_idx: Union[int, List[int], Tuple[int, ...]],
+        p_per_sample: float = 0.3,
+        any_of_these: Tuple[Callable] = (binary_dilation, binary_erosion, binary_closing, binary_opening),
+        key: str = "data",
+        strel_size: Tuple[int, int] = (1, 10),
+        p_per_label: float = 1,
+    ):
         """
         Applies random binary operations (specified by any_of_these) with random ball size (radius is uniformly sampled
         from interval strel_size) to specified channels. Expects the channel_idx to correspond to a hone hot encoded

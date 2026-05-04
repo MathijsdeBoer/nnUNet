@@ -37,8 +37,9 @@ def create_paths_fn(folder, files, file_ending, f):
     return [join(folder, i) for i in files if p.fullmatch(i)]
 
 
-def create_lists_from_splitted_dataset_folder(folder: str, file_ending: str, identifiers: List[str] = None, num_processes: int = 12) -> List[
-    List[str]]:
+def create_lists_from_splitted_dataset_folder(
+    folder: str, file_ending: str, identifiers: List[str] = None, num_processes: int = 12
+) -> List[List[str]]:
     """
     does not rely on dataset.json
     """
@@ -56,21 +57,34 @@ def create_lists_from_splitted_dataset_folder(folder: str, file_ending: str, ide
 
 def get_filenames_of_train_images_and_targets(raw_dataset_folder: str, dataset_json: dict = None):
     if dataset_json is None:
-        dataset_json = load_json(join(raw_dataset_folder, 'dataset.json'))
+        dataset_json = load_json(join(raw_dataset_folder, "dataset.json"))
 
-    if 'dataset' in dataset_json.keys():
-        dataset = dataset_json['dataset']
+    if "dataset" in dataset_json.keys():
+        dataset = dataset_json["dataset"]
         for k in dataset.keys():
-            expanded_label_file = os.path.expandvars(dataset[k]['label'])
-            dataset[k]['label'] = os.path.abspath(join(raw_dataset_folder, expanded_label_file)) if not os.path.isabs(expanded_label_file) else expanded_label_file
-            dataset[k]['images'] = [os.path.abspath(join(raw_dataset_folder, os.path.expandvars(i))) if not os.path.isabs(os.path.expandvars(i)) else os.path.expandvars(i) for i in dataset[k]['images']]
+            expanded_label_file = os.path.expandvars(dataset[k]["label"])
+            dataset[k]["label"] = (
+                os.path.abspath(join(raw_dataset_folder, expanded_label_file))
+                if not os.path.isabs(expanded_label_file)
+                else expanded_label_file
+            )
+            dataset[k]["images"] = [
+                os.path.abspath(join(raw_dataset_folder, os.path.expandvars(i)))
+                if not os.path.isabs(os.path.expandvars(i))
+                else os.path.expandvars(i)
+                for i in dataset[k]["images"]
+            ]
     else:
-        identifiers = get_identifiers_from_splitted_dataset_folder(join(raw_dataset_folder, 'imagesTr'), dataset_json['file_ending'])
-        images = create_lists_from_splitted_dataset_folder(join(raw_dataset_folder, 'imagesTr'), dataset_json['file_ending'], identifiers)
-        segs = [join(raw_dataset_folder, 'labelsTr', i + dataset_json['file_ending']) for i in identifiers]
-        dataset = {i: {'images': im, 'label': se} for i, im, se in zip(identifiers, images, segs)}
+        identifiers = get_identifiers_from_splitted_dataset_folder(
+            join(raw_dataset_folder, "imagesTr"), dataset_json["file_ending"]
+        )
+        images = create_lists_from_splitted_dataset_folder(
+            join(raw_dataset_folder, "imagesTr"), dataset_json["file_ending"], identifiers
+        )
+        segs = [join(raw_dataset_folder, "labelsTr", i + dataset_json["file_ending"]) for i in identifiers]
+        dataset = {i: {"images": im, "label": se} for i, im, se in zip(identifiers, images, segs)}
     return dataset
 
 
-if __name__ == '__main__':
-    print(get_filenames_of_train_images_and_targets(join(nnUNet_raw, 'Dataset002_Heart')))
+if __name__ == "__main__":
+    print(get_filenames_of_train_images_and_targets(join(nnUNet_raw, "Dataset002_Heart")))

@@ -11,6 +11,6 @@ def generate_crossval_split(train_identifiers: List[str], seed=12345, n_splits=5
         train_keys = np.array(train_identifiers)[train_idx]
         test_keys = np.array(train_identifiers)[test_idx]
         splits.append({})
-        splits[-1]['train'] = list(train_keys)
-        splits[-1]['val'] = list(test_keys)
+        splits[-1]["train"] = list(train_keys)
+        splits[-1]["val"] = list(test_keys)
     return splits

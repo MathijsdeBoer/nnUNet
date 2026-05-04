@@ -40,35 +40,31 @@ if __name__ == "__main__":
     }
 
     configurations_3d_fr_only = {
-        i: ("3d_fullres", ) for i in configurations_all if "3d_fullres" in configurations_all[i]
+        i: ("3d_fullres",) for i in configurations_all if "3d_fullres" in configurations_all[i]
     }
 
     configurations_3d_c_only = {
-        i: ("3d_cascade_fullres", ) for i in configurations_all if "3d_cascade_fullres" in configurations_all[i]
+        i: ("3d_cascade_fullres",) for i in configurations_all if "3d_cascade_fullres" in configurations_all[i]
     }
 
-    configurations_3d_lr_only = {
-        i: ("3d_lowres", ) for i in configurations_all if "3d_lowres" in configurations_all[i]
-    }
+    configurations_3d_lr_only = {i: ("3d_lowres",) for i in configurations_all if "3d_lowres" in configurations_all[i]}
 
-    configurations_2d_only = {
-        i: ("2d", ) for i in configurations_all if "2d" in configurations_all[i]
-    }
+    configurations_2d_only = {i: ("2d",) for i in configurations_all if "2d" in configurations_all[i]}
 
     num_gpus = 1
     exclude_hosts = "-R \"select[hname!='e230-dgx2-2']\" -R \"select[hname!='e230-dgx2-1']\""
     resources = ""
-    gpu_requirements = f"-gpu num={num_gpus}:j_exclusive=yes:gmem=23G"#gmodel=NVIDIAA100_PCIE_40GB"
+    gpu_requirements = f"-gpu num={num_gpus}:j_exclusive=yes:gmem=23G"  # gmodel=NVIDIAA100_PCIE_40GB"
     queue = "-q gpu-pro"
-    preamble = "\". /home/isensee/env_loading_scripts/continuous_performance_monitoring/load_env_torch211.sh && " # -L /bin/bash
-    train_command = 'nnUNetv2_train'
+    preamble = '". /home/isensee/env_loading_scripts/continuous_performance_monitoring/load_env_torch211.sh && '  # -L /bin/bash
+    train_command = "nnUNetv2_train"
 
-    folds = (0, )
+    folds = (0,)
     # use_this = configurations_2d_only
     use_this = configurations_3d_fr_only
     # use_this = merge(use_this, configurations_3d_c_only)
 
-    datasets = [3, 5, 8, 10, 17, 27, 55, 220, 223, 226] #, 219]
+    datasets = [3, 5, 8, 10, 17, 27, 55, 220, 223, 226]  # , 219]
     use_this = {i: use_this[i] for i in datasets}
 
     use_these_modules = {
@@ -87,7 +83,7 @@ if __name__ == "__main__":
         # 'nnUNetTrainerUMambaEnc': ('nnUNetPlans',),
         # 'nnUNetTrainer_fasterDA': ('nnUNetPlans', 'nnUNetResEncUNetLPlans'),
         # 'nnUNetTrainer_noDummy2DDA': ('nnUNetResEncUNetMPlans', ),
-        'nnUNetTrainer': ('nnUNetResEncUNetLPlans', ),
+        "nnUNetTrainer": ("nnUNetResEncUNetLPlans",),
         # 'nnUNetTrainerDA5': ('nnUNetResEncUNetMPlans', ),
         # 'nnUNetTrainer_DASegOrd0': ('nnUNetResEncUNetMPlans',),
         # 'nnUNetTrainerDA5Segord0': ('nnUNetResEncUNetMPlans',),
@@ -96,16 +92,16 @@ if __name__ == "__main__":
         # BN
     }
 
-    additional_arguments = f' -num_gpus {num_gpus} --disable_checkpointing'  # ''
+    additional_arguments = f" -num_gpus {num_gpus} --disable_checkpointing"  # ''
 
     output_file = "/home/isensee/deleteme.txt"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         for tr in use_these_modules.keys():
             for p in use_these_modules[tr]:
                 for dataset in use_this.keys():
                     for config in use_this[dataset]:
                         for fl in folds:
-                            command = f'bsub {exclude_hosts} {resources} {queue} {gpu_requirements} {preamble} {train_command} {dataset} {config} {fl} -tr {tr} -p {p}'
+                            command = f"bsub {exclude_hosts} {resources} {queue} {gpu_requirements} {preamble} {train_command} {dataset} {config} {fl} -tr {tr} -p {p}"
                             if additional_arguments is not None and len(additional_arguments) > 0:
-                                command += f' {additional_arguments}'
-                            f.write(f'{command}\"\n')
+                                command += f" {additional_arguments}"
+                            f.write(f'{command}"\n')

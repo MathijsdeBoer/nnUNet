@@ -28,7 +28,7 @@ def make_out_dirs(dataset_id: int, task_name="ACDC"):
 def create_ACDC_split(labelsTr_folder: str, seed: int = 1234) -> List[dict[str, List]]:
     # labelsTr_folder = '/home/isensee/drives/gpu_data_root/OE0441/isensee/nnUNet_raw/nnUNet_raw_remake/Dataset027_ACDC/labelsTr'
     nii_files = nifti_files(labelsTr_folder, join=False)
-    patients = np.unique([i[:len('patient000')] for i in nii_files])
+    patients = np.unique([i[: len("patient000")] for i in nii_files])
     rs = np.random.RandomState(seed)
     rs.shuffle(patients)
     splits = []
@@ -37,7 +37,7 @@ def create_ACDC_split(labelsTr_folder: str, seed: int = 1234) -> List[dict[str, 
         train_patients = [i for i in patients if i not in val_patients]
         val_cases = [i[:-7] for i in nii_files for j in val_patients if i.startswith(j)]
         train_cases = [i[:-7] for i in nii_files for j in train_patients if i.startswith(j)]
-        splits.append({'train': train_cases, 'val': val_cases})
+        splits.append({"train": train_cases, "val": val_cases})
     return splits
 
 
@@ -105,10 +105,10 @@ if __name__ == "__main__":
     convert_acdc(args.input_folder, args.dataset_id)
 
     dataset_name = f"Dataset{args.dataset_id:03d}_{'ACDC'}"
-    labelsTr = join(nnUNet_raw, dataset_name, 'labelsTr')
+    labelsTr = join(nnUNet_raw, dataset_name, "labelsTr")
     preprocessed_folder = join(nnUNet_preprocessed, dataset_name)
     maybe_mkdir_p(preprocessed_folder)
     split = create_ACDC_split(labelsTr)
-    save_json(split, join(preprocessed_folder, 'splits_final.json'), sort_keys=False)
+    save_json(split, join(preprocessed_folder, "splits_final.json"), sort_keys=False)
 
     print("Done!")

@@ -42,17 +42,21 @@ def find_candidate_datasets(dataset_id: int):
 def convert_id_to_dataset_name(dataset_id: int):
     unique_candidates = find_candidate_datasets(dataset_id)
     if len(unique_candidates) > 1:
-        raise RuntimeError("More than one dataset name found for dataset id %d. Please correct that. (I looked in the "
-                           "following folders:\n%s\n%s\n%s" % (dataset_id, nnUNet_raw.get(), nnUNet_preprocessed.get(),
-                                                                nnUNet_results.get()))
+        raise RuntimeError(
+            "More than one dataset name found for dataset id %d. Please correct that. (I looked in the "
+            "following folders:\n%s\n%s\n%s"
+            % (dataset_id, nnUNet_raw.get(), nnUNet_preprocessed.get(), nnUNet_results.get())
+        )
     if len(unique_candidates) == 0:
-        raise RuntimeError(f"Could not find a dataset with the ID {dataset_id}. Make sure the requested dataset ID "
-                           f"exists and that nnU-Net knows where raw and preprocessed data are located "
-                           f"(see Documentation - Installation). Here are your currently defined folders:\n"
-                           f"nnUNet_preprocessed={os.environ.get('nnUNet_preprocessed') if os.environ.get('nnUNet_preprocessed') is not None else 'None'}\n"
-                           f"nnUNet_results={os.environ.get('nnUNet_results') if os.environ.get('nnUNet_results') is not None else 'None'}\n"
-                           f"nnUNet_raw={os.environ.get('nnUNet_raw') if os.environ.get('nnUNet_raw') is not None else 'None'}\n"
-                           f"If something is not right, adapt your environment variables.")
+        raise RuntimeError(
+            f"Could not find a dataset with the ID {dataset_id}. Make sure the requested dataset ID "
+            f"exists and that nnU-Net knows where raw and preprocessed data are located "
+            f"(see Documentation - Installation). Here are your currently defined folders:\n"
+            f"nnUNet_preprocessed={os.environ.get('nnUNet_preprocessed') if os.environ.get('nnUNet_preprocessed') is not None else 'None'}\n"
+            f"nnUNet_results={os.environ.get('nnUNet_results') if os.environ.get('nnUNet_results') is not None else 'None'}\n"
+            f"nnUNet_raw={os.environ.get('nnUNet_raw') if os.environ.get('nnUNet_raw') is not None else 'None'}\n"
+            f"If something is not right, adapt your environment variables."
+        )
     return unique_candidates[0]
 
 
@@ -69,7 +73,9 @@ def maybe_convert_to_dataset_name(dataset_name_or_id: Union[int, str]) -> str:
         try:
             dataset_name_or_id = int(dataset_name_or_id)
         except ValueError:
-            raise ValueError("dataset_name_or_id was a string and did not start with 'Dataset' so we tried to "
-                             "convert it to a dataset ID (int). That failed, however. Please give an integer number "
-                             "('1', '2', etc) or a correct dataset name. Your input: %s" % dataset_name_or_id)
+            raise ValueError(
+                "dataset_name_or_id was a string and did not start with 'Dataset' so we tried to "
+                "convert it to a dataset ID (int). That failed, however. Please give an integer number "
+                "('1', '2', etc) or a correct dataset name. Your input: %s" % dataset_name_or_id
+            )
     return convert_id_to_dataset_name(dataset_name_or_id)

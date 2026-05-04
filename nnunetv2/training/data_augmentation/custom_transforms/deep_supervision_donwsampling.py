@@ -6,12 +6,18 @@ import numpy as np
 
 
 class DownsampleSegForDSTransform2(AbstractTransform):
-    '''
+    """
     data_dict['output_key'] will be a list of segmentations scaled according to ds_scales
-    '''
-    def __init__(self, ds_scales: Union[List, Tuple],
-                 order: int = 0, input_key: str = "seg",
-                 output_key: str = "seg", axes: Tuple[int] = None):
+    """
+
+    def __init__(
+        self,
+        ds_scales: Union[List, Tuple],
+        order: int = 0,
+        input_key: str = "seg",
+        output_key: str = "seg",
+        axes: Tuple[int] = None,
+    ):
         """
         Downscales data_dict[input_key] according to ds_scales. Each entry in ds_scales specified one deep supervision
         output and its resolution relative to the original data, for example 0.25 specifies 1/4 of the original shape.
@@ -35,9 +41,11 @@ class DownsampleSegForDSTransform2(AbstractTransform):
             if not isinstance(s, (tuple, list)):
                 s = [s] * len(axes)
             else:
-                assert len(s) == len(axes), f'If ds_scales is a tuple for each resolution (one downsampling factor ' \
-                                            f'for each axis) then the number of entried in that tuple (here ' \
-                                            f'{len(s)}) must be the same as the number of axes (here {len(axes)}).'
+                assert len(s) == len(axes), (
+                    f"If ds_scales is a tuple for each resolution (one downsampling factor "
+                    f"for each axis) then the number of entried in that tuple (here "
+                    f"{len(s)}) must be the same as the number of axes (here {len(axes)})."
+                )
 
             if all([i == 1 for i in s]):
                 output.append(data_dict[self.input_key])

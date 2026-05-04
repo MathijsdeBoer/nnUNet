@@ -59,19 +59,17 @@ class _EnvPath(os.PathLike):
 
 
 nnUNet_raw = _EnvPath(
-    'nnUNet_raw',
+    "nnUNet_raw",
     "nnU-Net can only be used on data for which preprocessed files are already present on your system. "
-    "nnU-Net cannot be used for experiment planning and preprocessing like this. If this is not intended, "
+    "nnU-Net cannot be used for experiment planning and preprocessing like this. If this is not intended, ",
 )
 nnUNet_preprocessed = _EnvPath(
-    'nnUNet_preprocessed',
-    "nnU-Net cannot be used for preprocessing or training. If this is not intended, "
+    "nnUNet_preprocessed", "nnU-Net cannot be used for preprocessing or training. If this is not intended, "
 )
 nnUNet_results = _EnvPath(
-    'nnUNet_results',
-    "nnU-Net cannot be used for training or inference. If this is not intended behavior, "
+    "nnUNet_results", "nnU-Net cannot be used for training or inference. If this is not intended behavior, "
 )
 nnUNet_extTrainer = _EnvPath(
-    'nnUNet_extTrainer',
-    "nnU-Net cannot locate custom trainer classes from external directories. If this is not intended, "
+    "nnUNet_extTrainer",
+    "nnU-Net cannot locate custom trainer classes from external directories. If this is not intended, ",
 )

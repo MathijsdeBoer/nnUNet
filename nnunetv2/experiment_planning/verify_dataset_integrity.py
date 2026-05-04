@@ -32,17 +32,22 @@ def verify_labels(label_file: str, readerclass: Type[BaseReaderWriter], expected
     found_labels = np.sort(pd.unique(seg.ravel()))  # np.unique(seg)
     unexpected_labels = [i for i in found_labels if i not in expected_labels]
     if len(found_labels) == 0 and found_labels[0] == 0:
-        print('WARNING: File %s only has label 0 (which should be background). This may be intentional or not, '
-              'up to you.' % label_file)
+        print(
+            "WARNING: File %s only has label 0 (which should be background). This may be intentional or not, "
+            "up to you." % label_file
+        )
     if len(unexpected_labels) > 0:
-        print("Error: Unexpected labels found in file %s.\nExpected: %s\nFound: %s" % (label_file, expected_labels,
-                                                                                       found_labels))
+        print(
+            "Error: Unexpected labels found in file %s.\nExpected: %s\nFound: %s"
+            % (label_file, expected_labels, found_labels)
+        )
         return False
     return True
 
 
-def check_cases(image_files: List[str], label_file: str, expected_num_channels: int,
-                readerclass: Type[BaseReaderWriter]) -> bool:
+def check_cases(
+    image_files: List[str], label_file: str, expected_num_channels: int, readerclass: Type[BaseReaderWriter]
+) -> bool:
     rw = readerclass()
     ret = True
 
@@ -51,73 +56,83 @@ def check_cases(image_files: List[str], label_file: str, expected_num_channels: 
 
     # check for nans
     if np.any(np.isnan(images)):
-        print(f'Images contain NaN pixel values. You need to fix that by '
-              f'replacing NaN values with something that makes sense for your images!\nImages:\n{image_files}')
+        print(
+            f"Images contain NaN pixel values. You need to fix that by "
+            f"replacing NaN values with something that makes sense for your images!\nImages:\n{image_files}"
+        )
         ret = False
     if np.any(np.isnan(segmentation)):
-        print(f'Segmentation contains NaN pixel values. You need to fix that.\nSegmentation:\n{label_file}')
+        print(f"Segmentation contains NaN pixel values. You need to fix that.\nSegmentation:\n{label_file}")
         ret = False
 
     # check shapes
     shape_image = images.shape[1:]
     shape_seg = segmentation.shape[1:]
     if shape_image != shape_seg:
-        print('Error: Shape mismatch between segmentation and corresponding images. \nShape images: %s. '
-              '\nShape seg: %s. \nImage files: %s. \nSeg file: %s\n' %
-              (shape_image, shape_seg, image_files, label_file))
+        print(
+            "Error: Shape mismatch between segmentation and corresponding images. \nShape images: %s. "
+            "\nShape seg: %s. \nImage files: %s. \nSeg file: %s\n" % (shape_image, shape_seg, image_files, label_file)
+        )
         ret = False
 
     # check spacings
-    spacing_images = properties_image['spacing']
-    spacing_seg = properties_seg['spacing']
+    spacing_images = properties_image["spacing"]
+    spacing_seg = properties_seg["spacing"]
     if not np.allclose(spacing_seg, spacing_images):
-        print('Error: Spacing mismatch between segmentation and corresponding images. \nSpacing images: %s. '
-              '\nSpacing seg: %s. \nImage files: %s. \nSeg file: %s\n' %
-              (spacing_images, spacing_seg, image_files, label_file))
+        print(
+            "Error: Spacing mismatch between segmentation and corresponding images. \nSpacing images: %s. "
+            "\nSpacing seg: %s. \nImage files: %s. \nSeg file: %s\n"
+            % (spacing_images, spacing_seg, image_files, label_file)
+        )
         ret = False
 
     # check modalities
     if not len(images) == expected_num_channels:
-        print('Error: Unexpected number of modalities. \nExpected: %d. \nGot: %d. \nImages: %s\n'
-              % (expected_num_channels, len(images), image_files))
+        print(
+            "Error: Unexpected number of modalities. \nExpected: %d. \nGot: %d. \nImages: %s\n"
+            % (expected_num_channels, len(images), image_files)
+        )
         ret = False
 
     # nibabel checks
-    if 'nibabel_stuff' in properties_image.keys():
+    if "nibabel_stuff" in properties_image.keys():
         # this image was read with NibabelIO
-        affine_image = properties_image['nibabel_stuff']['original_affine']
-        affine_seg = properties_seg['nibabel_stuff']['original_affine']
+        affine_image = properties_image["nibabel_stuff"]["original_affine"]
+        affine_seg = properties_seg["nibabel_stuff"]["original_affine"]
         if not np.allclose(affine_image, affine_seg):
-            print('Warning: Affine mismatch between segmentation and corresponding images. '
-                '\nAffine image: %s \nAffine seg: %s\n'
-                'Image files: %s. \nSeg file: %s.\n'
-                'This is a warning only and will not cause a crash. Please verify that your '
-                'segmentation and image are correctly aligned by running: '
-                'nnUNetv2_plot_overlay_pngs\n'
-                % (affine_image, affine_seg, image_files, label_file))
+            print(
+                "Warning: Affine mismatch between segmentation and corresponding images. "
+                "\nAffine image: %s \nAffine seg: %s\n"
+                "Image files: %s. \nSeg file: %s.\n"
+                "This is a warning only and will not cause a crash. Please verify that your "
+                "segmentation and image are correctly aligned by running: "
+                "nnUNetv2_plot_overlay_pngs\n" % (affine_image, affine_seg, image_files, label_file)
+            )
 
     # sitk checks
-    if 'sitk_stuff' in properties_image.keys():
+    if "sitk_stuff" in properties_image.keys():
         # this image was read with SimpleITKIO
         # spacing has already been checked, only check direction and origin
-        origin_image = properties_image['sitk_stuff']['origin']
-        origin_seg = properties_seg['sitk_stuff']['origin']
+        origin_image = properties_image["sitk_stuff"]["origin"]
+        origin_seg = properties_seg["sitk_stuff"]["origin"]
         if not np.allclose(origin_image, origin_seg):
-            print('Warning: Origin mismatch between segmentation and corresponding images. '
-                '\nOrigin images: %s. \nOrigin seg: %s. \nImage files: %s. \nSeg file: %s\n'
-                'This is a warning only and will not cause a crash. Please verify that your '
-                'segmentation and image are correctly aligned by running: '
-                'nnUNetv2_plot_overlay_pngs\n'
-                % (origin_image, origin_seg, image_files, label_file))
-        direction_image = properties_image['sitk_stuff']['direction']
-        direction_seg = properties_seg['sitk_stuff']['direction']
+            print(
+                "Warning: Origin mismatch between segmentation and corresponding images. "
+                "\nOrigin images: %s. \nOrigin seg: %s. \nImage files: %s. \nSeg file: %s\n"
+                "This is a warning only and will not cause a crash. Please verify that your "
+                "segmentation and image are correctly aligned by running: "
+                "nnUNetv2_plot_overlay_pngs\n" % (origin_image, origin_seg, image_files, label_file)
+            )
+        direction_image = properties_image["sitk_stuff"]["direction"]
+        direction_seg = properties_seg["sitk_stuff"]["direction"]
         if not np.allclose(direction_image, direction_seg):
-            print('Warning: Direction mismatch between segmentation and corresponding images. '
-                '\nDirection images: %s. \nDirection seg: %s. \nImage files: %s. \nSeg file: %s\n'
-                'This is a warning only and will not cause a crash. Please verify that your '
-                'segmentation and image are correctly aligned by running: '
-                'nnUNetv2_plot_overlay_pngs\n'
-                % (direction_image, direction_seg, image_files, label_file))
+            print(
+                "Warning: Direction mismatch between segmentation and corresponding images. "
+                "\nDirection images: %s. \nDirection seg: %s. \nImage files: %s. \nSeg file: %s\n"
+                "This is a warning only and will not cause a crash. Please verify that your "
+                "segmentation and image are correctly aligned by running: "
+                "nnUNetv2_plot_overlay_pngs\n" % (direction_image, direction_seg, image_files, label_file)
+            )
 
     return ret
 
@@ -134,106 +149,124 @@ def verify_dataset_integrity(folder: str, num_processes: int = 8) -> None:
     assert isfile(join(folder, "dataset.json")), f"There needs to be a dataset.json file in folder, folder={folder}"
     dataset_json = load_json(join(folder, "dataset.json"))
 
-    if 'dataset' not in dataset_json.keys():
+    if "dataset" not in dataset_json.keys():
         assert isdir(join(folder, "imagesTr")), f"There needs to be a imagesTr subfolder in folder, folder={folder}"
         assert isdir(join(folder, "labelsTr")), f"There needs to be a labelsTr subfolder in folder, folder={folder}"
 
     # make sure all required keys are there
     dataset_keys = list(dataset_json.keys())
-    required_keys = ['labels', "channel_names", "numTraining", "file_ending"]
-    assert all([i in dataset_keys for i in required_keys]), 'not all required keys are present in dataset.json.' \
-                                                            '\n\nRequired: \n%s\n\nPresent: \n%s\n\nMissing: ' \
-                                                            '\n%s\n\nUnused by nnU-Net:\n%s' % \
-                                                            (str(required_keys),
-                                                             str(dataset_keys),
-                                                             str([i for i in required_keys if i not in dataset_keys]),
-                                                             str([i for i in dataset_keys if i not in required_keys]))
+    required_keys = ["labels", "channel_names", "numTraining", "file_ending"]
+    assert all([i in dataset_keys for i in required_keys]), (
+        "not all required keys are present in dataset.json."
+        "\n\nRequired: \n%s\n\nPresent: \n%s\n\nMissing: "
+        "\n%s\n\nUnused by nnU-Net:\n%s"
+        % (
+            str(required_keys),
+            str(dataset_keys),
+            str([i for i in required_keys if i not in dataset_keys]),
+            str([i for i in dataset_keys if i not in required_keys]),
+        )
+    )
 
-    expected_num_training = dataset_json['numTraining']
-    num_modalities = len(dataset_json['channel_names'].keys()
-                         if 'channel_names' in dataset_json.keys()
-                         else dataset_json['modality'].keys())
-    file_ending = dataset_json['file_ending']
+    expected_num_training = dataset_json["numTraining"]
+    num_modalities = len(
+        dataset_json["channel_names"].keys()
+        if "channel_names" in dataset_json.keys()
+        else dataset_json["modality"].keys()
+    )
+    file_ending = dataset_json["file_ending"]
 
     dataset = get_filenames_of_train_images_and_targets(folder, dataset_json)
 
     # check if the right number of training cases is present
-    assert len(dataset) == expected_num_training, 'Did not find the expected number of training cases ' \
-                                                               '(%d). Found %d instead.\nExamples: %s' % \
-                                                               (expected_num_training, len(dataset),
-                                                                list(dataset.keys())[:5])
+    assert len(dataset) == expected_num_training, (
+        "Did not find the expected number of training cases "
+        "(%d). Found %d instead.\nExamples: %s" % (expected_num_training, len(dataset), list(dataset.keys())[:5])
+    )
 
     # check if corresponding labels are present
-    if 'dataset' in dataset_json.keys():
+    if "dataset" in dataset_json.keys():
         # just check if everything is there
         ok = True
         missing_images = []
         missing_labels = []
         for k in dataset:
-            for i in dataset[k]['images']:
+            for i in dataset[k]["images"]:
                 if not isfile(i):
                     missing_images.append(i)
                     ok = False
-            if not isfile(dataset[k]['label']):
-                missing_labels.append(dataset[k]['label'])
+            if not isfile(dataset[k]["label"]):
+                missing_labels.append(dataset[k]["label"])
                 ok = False
         if not ok:
-            raise FileNotFoundError(f"Some expected files were missing. Make sure you are properly referencing them "
-                                    f"in the dataset.json. Or use imagesTr & labelsTr folders!\nMissing images:"
-                                    f"\n{missing_images}\n\nMissing labels:\n{missing_labels}")
+            raise FileNotFoundError(
+                f"Some expected files were missing. Make sure you are properly referencing them "
+                f"in the dataset.json. Or use imagesTr & labelsTr folders!\nMissing images:"
+                f"\n{missing_images}\n\nMissing labels:\n{missing_labels}"
+            )
     else:
         # old code that uses imagestr and labelstr folders
-        labelfiles = subfiles(join(folder, 'labelsTr'), suffix=file_ending, join=False)
-        label_identifiers = [i[:-len(file_ending)] for i in labelfiles]
+        labelfiles = subfiles(join(folder, "labelsTr"), suffix=file_ending, join=False)
+        label_identifiers = [i[: -len(file_ending)] for i in labelfiles]
         labels_present = [i in label_identifiers for i in dataset.keys()]
         missing = [i for j, i in enumerate(dataset.keys()) if not labels_present[j]]
-        assert all(labels_present), f'not all training cases have a label file in labelsTr. Fix that. Missing: {missing}'
+        assert all(labels_present), (
+            f"not all training cases have a label file in labelsTr. Fix that. Missing: {missing}"
+        )
 
-    labelfiles = [v['label'] for v in dataset.values()]
-    image_files = [v['images'] for v in dataset.values()]
+    labelfiles = [v["label"] for v in dataset.values()]
+    image_files = [v["images"] for v in dataset.values()]
 
     # no plans exist yet, so we can't use PlansManager and gotta roll with the default. It's unlikely to cause
     # problems anyway
-    label_manager = LabelManager(dataset_json['labels'], regions_class_order=dataset_json.get('regions_class_order'))
+    label_manager = LabelManager(dataset_json["labels"], regions_class_order=dataset_json.get("regions_class_order"))
     expected_labels = label_manager.all_labels
     if label_manager.has_ignore_label:
         expected_labels.append(label_manager.ignore_label)
     labels_valid_consecutive = np.ediff1d(expected_labels) == 1
-    assert all(
-        labels_valid_consecutive), f'Labels must be in consecutive order (0, 1, 2, ...). The labels {np.array(expected_labels)[1:][~labels_valid_consecutive]} do not satisfy this restriction'
+    assert all(labels_valid_consecutive), (
+        f"Labels must be in consecutive order (0, 1, 2, ...). The labels {np.array(expected_labels)[1:][~labels_valid_consecutive]} do not satisfy this restriction"
+    )
 
     # determine reader/writer class
-    reader_writer_class = determine_reader_writer_from_dataset_json(dataset_json, dataset[dataset.keys().__iter__().__next__()]['images'][0])
+    reader_writer_class = determine_reader_writer_from_dataset_json(
+        dataset_json, dataset[dataset.keys().__iter__().__next__()]["images"][0]
+    )
 
     # check whether only the desired labels are present
     with multiprocessing.get_context("spawn").Pool(num_processes) as p:
         result = p.starmap(
-            verify_labels,
-            zip(labelfiles, [reader_writer_class] * len(labelfiles), [expected_labels] * len(labelfiles))
+            verify_labels, zip(labelfiles, [reader_writer_class] * len(labelfiles), [expected_labels] * len(labelfiles))
         )
         if not all(result):
             raise RuntimeError(
-                'Some segmentation images contained unexpected labels. Please check text output above to see which one(s).')
+                "Some segmentation images contained unexpected labels. Please check text output above to see which one(s)."
+            )
 
         # check whether shapes and spacings match between images and labels
         result = p.starmap(
             check_cases,
-            zip(image_files, labelfiles, [num_modalities] * expected_num_training,
-                [reader_writer_class] * expected_num_training)
+            zip(
+                image_files,
+                labelfiles,
+                [num_modalities] * expected_num_training,
+                [reader_writer_class] * expected_num_training,
+            ),
         )
         if not all(result):
             raise RuntimeError(
-                'Some images have errors. Please check text output above to see which one(s) and what\'s going on.')
+                "Some images have errors. Please check text output above to see which one(s) and what's going on."
+            )
 
     # check for nans
     # check all same orientation nibabel
-    print('\n####################')
-    print('verify_dataset_integrity Done. \nIf you didn\'t see any error messages then your dataset is most likely OK!')
-    print('####################\n')
+    print("\n####################")
+    print("verify_dataset_integrity Done. \nIf you didn't see any error messages then your dataset is most likely OK!")
+    print("####################\n")
 
 
 if __name__ == "__main__":
     # investigate geometry issues
-    example_folder = join(nnUNet_raw, 'Dataset250_COMPUTING_it0')
+    example_folder = join(nnUNet_raw, "Dataset250_COMPUTING_it0")
     num_processes = 6
     verify_dataset_integrity(example_folder, num_processes)

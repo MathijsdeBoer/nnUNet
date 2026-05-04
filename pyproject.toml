@@ -1,7 +1,7 @@
 [project]
 name = "nnunetv2"
 version = "2.7.0"
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.14"
 description = "nnU-Net is a framework for out-of-the box image segmentation."
 readme = "readme.md"
 license = { file = "LICENSE" }
@@ -30,7 +30,7 @@ keywords = [
     'nnunet'
 ]
 dependencies = [
-    "torch>=2.1.2,!=2.9.*",
+    "torch>=2.6.0,!=2.9.*",
     "acvl-utils>=0.2.6,<0.3",  # 0.3 may bring breaking changes. Careful!
     "dynamic-network-architectures>=0.4.1,<0.5",
     "tqdm",
@@ -51,7 +51,11 @@ dependencies = [
     "yacs",
     "batchgeneratorsv2>=0.3.2",
     "einops",
-    "blosc2>=3.0.0b1"
+    "blosc2>=3.0.0b1",
+    "monai>=1.5.2",
+    "cupy-cuda13x>=14.0.1",
+    "cucim-cu13>=26.4.0; sys_platform == 'linux'",
+    "hiddenlayer>=0.3",
 ]
 
 [project.urls]
@@ -85,10 +89,6 @@ nnUNetv2_convert_MSD_dataset = "nnunetv2.dataset_conversion.convert_MSD_dataset:
 dev = [
     "pre-commit"
 ]
-intel_macos = [
-    "torch<2.3",
-    "numpy<2",
-]
 
 [tool.setuptools.packages.find]
 include = ["nnunetv2*"]
@@ -106,3 +106,16 @@ ignore = ["F403", "F405", "E501", "E741", "E722"]
 [tool.codespell]
 skip = '.git,*.pdf,*.svg'
 ignore-words-list = 'LiTS,assertIn'
+
+[tool.uv]
+compile-bytecode = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true

@@ -166,13 +166,15 @@ if __name__ == "__main__":
         help="The downloaded MNMs dataset dir. Should contain a csv file, as well as Training, Validation and Testing "
         "folders.",
     )
-    parser.add_argument(
-        "-c",
-        "--csv_file_name",
-        type=str,
-        default="211230_M&Ms_Dataset_information_diagnosis_opendataset.csv",
-        help="The csv file containing the dataset information.",
-    ),
+    (
+        parser.add_argument(
+            "-c",
+            "--csv_file_name",
+            type=str,
+            default="211230_M&Ms_Dataset_information_diagnosis_opendataset.csv",
+            help="The csv file containing the dataset information.",
+        ),
+    )
     parser.add_argument("-d", "--dataset_id", type=int, default=114, help="nnUNet Dataset ID.")
     parser.add_argument(
         "-s",

@@ -66,11 +66,7 @@ def temporarily_cleanup_imports_from_path(path: str):
         yield
     finally:
         for name, module in list(sys.modules.items()):
-            if (
-                name not in previously_loaded
-                and module is not None
-                and _module_originates_from_path(module, path)
-            ):
+            if name not in previously_loaded and module is not None and _module_originates_from_path(module, path):
                 sys.modules.pop(name, None)
 
 
@@ -78,9 +74,7 @@ def _recursive_find_python_class(folder: str, class_name: str, current_module: s
     # Search modules (non-packages) in the folder
     for importer, modname, ispkg in pkgutil.iter_modules([folder]):
         if not ispkg:
-            search_module = (
-                modname if current_module is None else f"{current_module}.{modname}"
-            )
+            search_module = modname if current_module is None else f"{current_module}.{modname}"
             if verbose:
                 print(f"  Inspecting module: {search_module}")
             m = importlib.import_module(search_module)
@@ -93,9 +87,7 @@ def _recursive_find_python_class(folder: str, class_name: str, current_module: s
     for importer, modname, ispkg in pkgutil.iter_modules([folder]):
         if ispkg:
             next_folder = join(folder, modname)
-            next_module = (
-                modname if current_module is None else f"{current_module}.{modname}"
-            )
+            next_module = modname if current_module is None else f"{current_module}.{modname}"
             result = _recursive_find_python_class(
                 next_folder,
                 class_name,
@@ -146,9 +138,7 @@ def recursive_find_python_class(
             stack.enter_context(temporarily_cleanup_imports_from_path(base_folder))
 
         if verbose:
-            print(
-                f"Searching for class {class_name} in folder {folder} with current module {current_module}"
-            )
+            print(f"Searching for class {class_name} in folder {folder} with current module {current_module}")
 
         return _recursive_find_python_class(
             folder,

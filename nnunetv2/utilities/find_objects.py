@@ -45,7 +45,7 @@ def recursive_find_trainer_class_by_name(trainer_name: str):
             raise RuntimeError(
                 f"Could not find requested nnunet trainer {trainer_name} in "
                 f"nnunetv2.training.nnUNetTrainer ("
-                f'{join(nnunetv2.__path__[0], "training", "nnUNetTrainer")}). '
+                f"{join(nnunetv2.__path__[0], 'training', 'nnUNetTrainer')}). "
                 f"If the trainer is located elsewhere, please move it there or specify the external path via the "
                 f"`nnUNet_extTrainer` environment variable. "
                 f"nnUNet_extTrainer={os.environ.get('nnUNet_extTrainer', '')}"

@@ -8,10 +8,18 @@ from torch import distributed as dist
 
 
 class nnUNetTrainerBenchmark_5epochs(nnUNetTrainer):
-    def __init__(self, plans: dict, configuration: str, fold: int, dataset_json: dict,
-                 device: torch.device = torch.device('cuda')):
+    def __init__(
+        self,
+        plans: dict,
+        configuration: str,
+        fold: int,
+        dataset_json: dict,
+        device: torch.device = torch.device("cuda"),
+    ):
         super().__init__(plans, configuration, fold, dataset_json, device)
-        assert self.fold == 0, "It makes absolutely no sense to specify a certain fold. Stick with 0 so that we can parse the results."
+        assert self.fold == 0, (
+            "It makes absolutely no sense to specify a certain fold. Stick with 0 so that we can parse the results."
+        )
         self.disable_checkpointing = True
         self.num_epochs = 5
         assert torch.cuda.is_available(), "This only works on GPU"
@@ -42,10 +50,15 @@ class nnUNetTrainerBenchmark_5epochs(nnUNetTrainer):
             cudnn_version = torch.backends.cudnn.version()
             gpu_name = torch.cuda.get_device_name()
             if self.crashed_with_runtime_error:
-                fastest_epoch = 'Training has ended due to an error. Check your logs for more information.'
+                fastest_epoch = "Training has ended due to an error. Check your logs for more information."
             else:
-                epoch_times = [i - j for i, j in zip(self.logger.get_value('epoch_end_timestamps', step=None),
-                                                     self.logger.get_value('epoch_start_timestamps', step=None))]
+                epoch_times = [
+                    i - j
+                    for i, j in zip(
+                        self.logger.get_value("epoch_end_timestamps", step=None),
+                        self.logger.get_value("epoch_start_timestamps", step=None),
+                    )
+                ]
                 fastest_epoch = min(epoch_times)
 
             if self.is_ddp:
@@ -53,21 +66,20 @@ class nnUNetTrainerBenchmark_5epochs(nnUNetTrainer):
             else:
                 num_gpus = 1
 
-            benchmark_result_file = join(self.output_folder, 'benchmark_result.json')
+            benchmark_result_file = join(self.output_folder, "benchmark_result.json")
             if isfile(benchmark_result_file):
                 old_results = load_json(benchmark_result_file)
             else:
                 old_results = {}
             # generate some unique key
-            hostname = subprocess.getoutput('hostname')
+            hostname = subprocess.getoutput("hostname")
             my_key = f"{hostname}__{cudnn_version}__{torch_version.replace(' ', '')}__{gpu_name.replace(' ', '')}__num_gpus_{num_gpus}"
             old_results[my_key] = {
-                'torch_version': torch_version,
-                'cudnn_version': cudnn_version,
-                'gpu_name': gpu_name,
-                'fastest_epoch': fastest_epoch,
-                'num_gpus': num_gpus,
-                'hostname': hostname
+                "torch_version": torch_version,
+                "cudnn_version": cudnn_version,
+                "gpu_name": gpu_name,
+                "fastest_epoch": fastest_epoch,
+                "num_gpus": num_gpus,
+                "hostname": hostname,
             }
-            save_json(old_results,
-                      join(self.output_folder, 'benchmark_result.json'))
+            save_json(old_results, join(self.output_folder, "benchmark_result.json"))

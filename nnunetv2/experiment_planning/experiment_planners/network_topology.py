@@ -51,7 +51,7 @@ def get_pool_and_conv_props(spacing, patch_size, min_feature_map_size, max_numpo
 
     while True:
         # exclude axes that we cannot pool further because of min_feature_map_size constraint
-        valid_axes_for_pool = [i for i in range(dim) if current_size[i] >= 2*min_feature_map_size]
+        valid_axes_for_pool = [i for i in range(dim) if current_size[i] >= 2 * min_feature_map_size]
         if len(valid_axes_for_pool) < 1:
             break
 
@@ -95,7 +95,7 @@ def get_pool_and_conv_props(spacing, patch_size, min_feature_map_size, max_numpo
 
         pool_op_kernel_sizes.append(pool_kernel_sizes)
         conv_kernel_sizes.append(deepcopy(kernel_size))
-        #print(conv_kernel_sizes)
+        # print(conv_kernel_sizes)
 
     must_be_divisible_by = get_shape_must_be_divisible_by(num_pool_per_axis)
     patch_size = pad_shape(patch_size, must_be_divisible_by)
@@ -104,5 +104,11 @@ def get_pool_and_conv_props(spacing, patch_size, min_feature_map_size, max_numpo
         return tuple(_to_tuple(i) if isinstance(i, list) else i for i in lst)
 
     # we need to add one more conv_kernel_size for the bottleneck. We always use 3x3(x3) conv here
-    conv_kernel_sizes.append([3]*dim)
-    return num_pool_per_axis, _to_tuple(pool_op_kernel_sizes), _to_tuple(conv_kernel_sizes), tuple(patch_size), must_be_divisible_by
+    conv_kernel_sizes.append([3] * dim)
+    return (
+        num_pool_per_axis,
+        _to_tuple(pool_op_kernel_sizes),
+        _to_tuple(conv_kernel_sizes),
+        tuple(patch_size),
+        must_be_divisible_by,
+    )

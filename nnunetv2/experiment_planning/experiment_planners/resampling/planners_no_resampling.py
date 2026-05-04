@@ -1,7 +1,8 @@
 from typing import Union, List, Tuple
 
-from nnunetv2.experiment_planning.experiment_planners.residual_unets.residual_encoder_unet_planners import \
-    nnUNetPlannerResEncL
+from nnunetv2.experiment_planning.experiment_planners.residual_unets.residual_encoder_unet_planners import (
+    nnUNetPlannerResEncL,
+)
 from nnunetv2.preprocessing.resampling.no_resampling import no_resampling_hack
 
 
@@ -10,13 +11,24 @@ class nnUNetPlannerResEncL_noResampling(nnUNetPlannerResEncL):
     This planner will generate 3d_lowres as well. Don't trust it. Everything will remain in the original shape.
     No resampling will ever be done.
     """
-    def __init__(self, dataset_name_or_id: Union[str, int],
-                 gpu_memory_target_in_gb: float = 24,
-                 preprocessor_name: str = 'DefaultPreprocessor', plans_name: str = 'nnUNetResEncUNetLPlans_noResampling',
-                 overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
-                 suppress_transpose: bool = False):
-        super().__init__(dataset_name_or_id, gpu_memory_target_in_gb, preprocessor_name, plans_name,
-                         overwrite_target_spacing, suppress_transpose)
+
+    def __init__(
+        self,
+        dataset_name_or_id: Union[str, int],
+        gpu_memory_target_in_gb: float = 24,
+        preprocessor_name: str = "DefaultPreprocessor",
+        plans_name: str = "nnUNetResEncUNetLPlans_noResampling",
+        overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
+        suppress_transpose: bool = False,
+    ):
+        super().__init__(
+            dataset_name_or_id,
+            gpu_memory_target_in_gb,
+            preprocessor_name,
+            plans_name,
+            overwrite_target_spacing,
+            suppress_transpose,
+        )
 
     def generate_data_identifier(self, configuration_name: str) -> str:
         """
@@ -24,7 +36,7 @@ class nnUNetPlannerResEncL_noResampling(nnUNetPlannerResEncL):
         same name. In order to distinguish the associated data we need a data identifier that reflects not just the
         config but also the plans it originates from
         """
-        return self.plans_identifier + '_' + configuration_name
+        return self.plans_identifier + "_" + configuration_name
 
     def determine_resampling(self, *args, **kwargs):
         """

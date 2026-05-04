@@ -10,11 +10,12 @@ from tqdm import tqdm
 
 def download_and_install_from_url(url):
     nnUNet_results.require()
-    print('Downloading pretrained model from url:', url)
+    print("Downloading pretrained model from url:", url)
     import os
-    home = os.path.expanduser('~')
+
+    home = os.path.expanduser("~")
     random_number = int(time() * 1e7)
-    tempfile = join(home, f'.nnunetdownload_{str(random_number)}')
+    tempfile = join(home, f".nnunetdownload_{str(random_number)}")
 
     try:
         download_file(url=url, local_filename=tempfile, chunk_size=8192 * 16)
@@ -33,7 +34,7 @@ def download_file(url: str, local_filename: str, chunk_size: Optional[int] = 819
     # NOTE the stream=True parameter below
     with requests.get(url, stream=True, timeout=100) as r:
         r.raise_for_status()
-        with tqdm.wrapattr(open(local_filename, 'wb'), "write", total=int(r.headers.get("Content-Length"))) as f:
+        with tqdm.wrapattr(open(local_filename, "wb"), "write", total=int(r.headers.get("Content-Length"))) as f:
             for chunk in r.iter_content(chunk_size=chunk_size):
                 f.write(chunk)
     return local_filename

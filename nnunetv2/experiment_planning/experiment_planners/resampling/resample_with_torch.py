@@ -2,19 +2,30 @@ from typing import Union, List, Tuple
 
 from nnunetv2.configuration import ANISO_THRESHOLD
 from nnunetv2.experiment_planning.experiment_planners.default_experiment_planner import ExperimentPlanner
-from nnunetv2.experiment_planning.experiment_planners.residual_unets.residual_encoder_unet_planners import \
-    nnUNetPlannerResEncL
+from nnunetv2.experiment_planning.experiment_planners.residual_unets.residual_encoder_unet_planners import (
+    nnUNetPlannerResEncL,
+)
 from nnunetv2.preprocessing.resampling.resample_torch import resample_torch_fornnunet
 
 
 class nnUNetPlannerResEncL_torchres(nnUNetPlannerResEncL):
-    def __init__(self, dataset_name_or_id: Union[str, int],
-                 gpu_memory_target_in_gb: float = 24,
-                 preprocessor_name: str = 'DefaultPreprocessor', plans_name: str = 'nnUNetResEncUNetLPlans_torchres',
-                 overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
-                 suppress_transpose: bool = False):
-        super().__init__(dataset_name_or_id, gpu_memory_target_in_gb, preprocessor_name, plans_name,
-                         overwrite_target_spacing, suppress_transpose)
+    def __init__(
+        self,
+        dataset_name_or_id: Union[str, int],
+        gpu_memory_target_in_gb: float = 24,
+        preprocessor_name: str = "DefaultPreprocessor",
+        plans_name: str = "nnUNetResEncUNetLPlans_torchres",
+        overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
+        suppress_transpose: bool = False,
+    ):
+        super().__init__(
+            dataset_name_or_id,
+            gpu_memory_target_in_gb,
+            preprocessor_name,
+            plans_name,
+            overwrite_target_spacing,
+            suppress_transpose,
+        )
 
     def generate_data_identifier(self, configuration_name: str) -> str:
         """
@@ -22,7 +33,7 @@ class nnUNetPlannerResEncL_torchres(nnUNetPlannerResEncL):
         same name. In order to distinguish the associated data we need a data identifier that reflects not just the
         config but also the plans it originates from
         """
-        return self.plans_identifier + '_' + configuration_name
+        return self.plans_identifier + "_" + configuration_name
 
     def determine_resampling(self, *args, **kwargs):
         """
@@ -33,17 +44,9 @@ class nnUNetPlannerResEncL_torchres(nnUNetPlannerResEncL):
         configuration
         """
         resampling_data = resample_torch_fornnunet
-        resampling_data_kwargs = {
-            "is_seg": False,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_data_kwargs = {"is_seg": False, "force_separate_z": False, "memefficient_seg_resampling": False}
         resampling_seg = resample_torch_fornnunet
-        resampling_seg_kwargs = {
-            "is_seg": True,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_seg_kwargs = {"is_seg": True, "force_separate_z": False, "memefficient_seg_resampling": False}
         return resampling_data, resampling_data_kwargs, resampling_seg, resampling_seg_kwargs
 
     def determine_segmentation_softmax_export_fn(self, *args, **kwargs):
@@ -56,22 +59,28 @@ class nnUNetPlannerResEncL_torchres(nnUNetPlannerResEncL):
 
         """
         resampling_fn = resample_torch_fornnunet
-        resampling_fn_kwargs = {
-            "is_seg": False,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_fn_kwargs = {"is_seg": False, "force_separate_z": False, "memefficient_seg_resampling": False}
         return resampling_fn, resampling_fn_kwargs
 
 
 class nnUNetPlannerResEncL_torchres_sepz(nnUNetPlannerResEncL):
-    def __init__(self, dataset_name_or_id: Union[str, int],
-                 gpu_memory_target_in_gb: float = 24,
-                 preprocessor_name: str = 'DefaultPreprocessor', plans_name: str = 'nnUNetResEncUNetLPlans_torchres_sepz',
-                 overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
-                 suppress_transpose: bool = False):
-        super().__init__(dataset_name_or_id, gpu_memory_target_in_gb, preprocessor_name, plans_name,
-                         overwrite_target_spacing, suppress_transpose)
+    def __init__(
+        self,
+        dataset_name_or_id: Union[str, int],
+        gpu_memory_target_in_gb: float = 24,
+        preprocessor_name: str = "DefaultPreprocessor",
+        plans_name: str = "nnUNetResEncUNetLPlans_torchres_sepz",
+        overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
+        suppress_transpose: bool = False,
+    ):
+        super().__init__(
+            dataset_name_or_id,
+            gpu_memory_target_in_gb,
+            preprocessor_name,
+            plans_name,
+            overwrite_target_spacing,
+            suppress_transpose,
+        )
 
     def generate_data_identifier(self, configuration_name: str) -> str:
         """
@@ -79,7 +88,7 @@ class nnUNetPlannerResEncL_torchres_sepz(nnUNetPlannerResEncL):
         same name. In order to distinguish the associated data we need a data identifier that reflects not just the
         config but also the plans it originates from
         """
-        return self.plans_identifier + '_' + configuration_name
+        return self.plans_identifier + "_" + configuration_name
 
     def determine_resampling(self, *args, **kwargs):
         """
@@ -92,16 +101,16 @@ class nnUNetPlannerResEncL_torchres_sepz(nnUNetPlannerResEncL):
         resampling_data = resample_torch_fornnunet
         resampling_data_kwargs = {
             "is_seg": False,
-            'force_separate_z': None,
-            'memefficient_seg_resampling': False,
-            'separate_z_anisotropy_threshold': ANISO_THRESHOLD
+            "force_separate_z": None,
+            "memefficient_seg_resampling": False,
+            "separate_z_anisotropy_threshold": ANISO_THRESHOLD,
         }
         resampling_seg = resample_torch_fornnunet
         resampling_seg_kwargs = {
             "is_seg": True,
-            'force_separate_z': None,
-            'memefficient_seg_resampling': False,
-            'separate_z_anisotropy_threshold': ANISO_THRESHOLD
+            "force_separate_z": None,
+            "memefficient_seg_resampling": False,
+            "separate_z_anisotropy_threshold": ANISO_THRESHOLD,
         }
         return resampling_data, resampling_data_kwargs, resampling_seg, resampling_seg_kwargs
 
@@ -117,21 +126,31 @@ class nnUNetPlannerResEncL_torchres_sepz(nnUNetPlannerResEncL):
         resampling_fn = resample_torch_fornnunet
         resampling_fn_kwargs = {
             "is_seg": False,
-            'force_separate_z': None,
-            'memefficient_seg_resampling': False,
-            'separate_z_anisotropy_threshold': ANISO_THRESHOLD
+            "force_separate_z": None,
+            "memefficient_seg_resampling": False,
+            "separate_z_anisotropy_threshold": ANISO_THRESHOLD,
         }
         return resampling_fn, resampling_fn_kwargs
 
 
 class nnUNetPlanner_torchres(ExperimentPlanner):
-    def __init__(self, dataset_name_or_id: Union[str, int],
-                 gpu_memory_target_in_gb: float = 8,
-                 preprocessor_name: str = 'DefaultPreprocessor', plans_name: str = 'nnUNetPlans_torchres',
-                 overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
-                 suppress_transpose: bool = False):
-        super().__init__(dataset_name_or_id, gpu_memory_target_in_gb, preprocessor_name, plans_name,
-                         overwrite_target_spacing, suppress_transpose)
+    def __init__(
+        self,
+        dataset_name_or_id: Union[str, int],
+        gpu_memory_target_in_gb: float = 8,
+        preprocessor_name: str = "DefaultPreprocessor",
+        plans_name: str = "nnUNetPlans_torchres",
+        overwrite_target_spacing: Union[List[float], Tuple[float, ...]] = None,
+        suppress_transpose: bool = False,
+    ):
+        super().__init__(
+            dataset_name_or_id,
+            gpu_memory_target_in_gb,
+            preprocessor_name,
+            plans_name,
+            overwrite_target_spacing,
+            suppress_transpose,
+        )
 
     def generate_data_identifier(self, configuration_name: str) -> str:
         """
@@ -139,7 +158,7 @@ class nnUNetPlanner_torchres(ExperimentPlanner):
         same name. In order to distinguish the associated data we need a data identifier that reflects not just the
         config but also the plans it originates from
         """
-        return self.plans_identifier + '_' + configuration_name
+        return self.plans_identifier + "_" + configuration_name
 
     def determine_resampling(self, *args, **kwargs):
         """
@@ -150,17 +169,9 @@ class nnUNetPlanner_torchres(ExperimentPlanner):
         configuration
         """
         resampling_data = resample_torch_fornnunet
-        resampling_data_kwargs = {
-            "is_seg": False,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_data_kwargs = {"is_seg": False, "force_separate_z": False, "memefficient_seg_resampling": False}
         resampling_seg = resample_torch_fornnunet
-        resampling_seg_kwargs = {
-            "is_seg": True,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_seg_kwargs = {"is_seg": True, "force_separate_z": False, "memefficient_seg_resampling": False}
         return resampling_data, resampling_data_kwargs, resampling_seg, resampling_seg_kwargs
 
     def determine_segmentation_softmax_export_fn(self, *args, **kwargs):
@@ -173,9 +184,5 @@ class nnUNetPlanner_torchres(ExperimentPlanner):
 
         """
         resampling_fn = resample_torch_fornnunet
-        resampling_fn_kwargs = {
-            "is_seg": False,
-            'force_separate_z': False,
-            'memefficient_seg_resampling': False
-        }
+        resampling_fn_kwargs = {"is_seg": False, "force_separate_z": False, "memefficient_seg_resampling": False}
         return resampling_fn, resampling_fn_kwargs

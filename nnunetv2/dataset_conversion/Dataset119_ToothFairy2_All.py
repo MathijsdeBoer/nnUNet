@@ -109,9 +109,7 @@ def process_labels(
         _ = [job.get() for job in tqdm(jobs, desc="Process Labels...")]
 
 
-def process_ds(
-    root: str, input_ds: str, output_ds: str, mapping: dict, image_link: str = None
-) -> None:
+def process_ds(root: str, input_ds: str, output_ds: str, mapping: dict, image_link: str = None) -> None:
     os.makedirs(join(root, output_ds), exist_ok=True)
     os.makedirs(join(root, output_ds, "labelsTr"), exist_ok=True)
     # --- Handle Labels --- #

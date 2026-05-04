@@ -1,7 +1,7 @@
 import matplotlib
 from batchgenerators.utilities.file_and_folder_operations import join
 
-matplotlib.use('agg')
+matplotlib.use("agg")
 import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import Any
@@ -67,16 +67,19 @@ class MetaLogger(object):
         if isinstance(value, list):
             for i, val in enumerate(value):
                 for logger in self.loggers:
-                    logger.log(f"{key}/class_{i+1}", val, step)
+                    logger.log(f"{key}/class_{i + 1}", val, step)
         else:
             for logger in self.loggers:
                 logger.log(key, value, step)
 
         # handle the ema_fg_dice special case! It is automatically logged when we add a new mean_fg_dice
-        if key == 'mean_fg_dice':
-            new_ema_pseudo_dice = self.get_value('ema_fg_dice', step=step-1) * 0.9 + 0.1 * value \
-                if len(self.get_value('ema_fg_dice', step=None)) > 0 else value
-            self.log('ema_fg_dice', new_ema_pseudo_dice, step)
+        if key == "mean_fg_dice":
+            new_ema_pseudo_dice = (
+                self.get_value("ema_fg_dice", step=step - 1) * 0.9 + 0.1 * value
+                if len(self.get_value("ema_fg_dice", step=None)) > 0
+                else value
+            )
+            self.log("ema_fg_dice", new_ema_pseudo_dice, step)
 
     def log_summary(self, key: str, value: Any):
         """Log a summary value. These are usually values that are not logged every step but only once.
@@ -132,7 +135,9 @@ class MetaLogger(object):
         elif env_var_result in ("1", "True", "true"):
             return True
         else:
-            raise RuntimeError("nnU-Net logger environment variable has the wrong value. Must be '0' (disabled) or '1'(enabled).")
+            raise RuntimeError(
+                "nnU-Net logger environment variable has the wrong value. Must be '0' (disabled) or '1'(enabled)."
+            )
 
 
 class LocalLogger:
@@ -143,16 +148,17 @@ class LocalLogger:
 
     YOU MUST LOG EXACTLY ONE VALUE PER EPOCH FOR EACH OF THE LOGGING ITEMS! DONT FUCK IT UP
     """
+
     def __init__(self, verbose: bool = False):
         self.my_fantastic_logging = {
-            'mean_fg_dice': list(),
-            'ema_fg_dice': list(),
-            'dice_per_class_or_region': list(),
-            'train_losses': list(),
-            'val_losses': list(),
-            'lrs': list(),
-            'epoch_start_timestamps': list(),
-            'epoch_end_timestamps': list()
+            "mean_fg_dice": list(),
+            "ema_fg_dice": list(),
+            "dice_per_class_or_region": list(),
+            "train_losses": list(),
+            "val_losses": list(),
+            "lrs": list(),
+            "epoch_start_timestamps": list(),
+            "epoch_end_timestamps": list(),
         }
         self.verbose = verbose
         # shut up, this logging is great
@@ -161,18 +167,20 @@ class LocalLogger:
         """
         sometimes shit gets messed up. We try to catch that here
         """
-        assert key in self.my_fantastic_logging.keys() and isinstance(self.my_fantastic_logging[key], list), \
-            'This function is only intended to log stuff to lists and to have one entry per epoch'
+        assert key in self.my_fantastic_logging.keys() and isinstance(self.my_fantastic_logging[key], list), (
+            "This function is only intended to log stuff to lists and to have one entry per epoch"
+        )
 
         if self.verbose:
-            print(f'logging {key}: {value} for epoch {epoch}')
+            print(f"logging {key}: {value} for epoch {epoch}")
 
         if len(self.my_fantastic_logging[key]) < (epoch + 1):
             self.my_fantastic_logging[key].append(value)
         else:
-            assert len(self.my_fantastic_logging[key]) == (epoch + 1), 'something went horribly wrong. My logging ' \
-                                                                       'lists length is off by more than 1'
-            print(f'maybe some logging issue!? logging {key} and {value}')
+            assert len(self.my_fantastic_logging[key]) == (epoch + 1), (
+                "something went horribly wrong. My logging lists length is off by more than 1"
+            )
+            print(f"maybe some logging issue!? logging {key} and {value}")
             self.my_fantastic_logging[key][epoch] = value
 
     def get_value(self, key, step):
@@ -190,12 +198,38 @@ class LocalLogger:
         ax = ax_all[0]
         ax2 = ax.twinx()
         x_values = list(range(epoch + 1))
-        ax.plot(x_values, self.my_fantastic_logging['train_losses'][:epoch + 1], color='b', ls='-', label="loss_tr", linewidth=4)
-        ax.plot(x_values, self.my_fantastic_logging['val_losses'][:epoch + 1], color='r', ls='-', label="loss_val", linewidth=4)
-        ax2.plot(x_values, self.my_fantastic_logging['mean_fg_dice'][:epoch + 1], color='g', ls='dotted', label="pseudo dice",
-                 linewidth=3)
-        ax2.plot(x_values, self.my_fantastic_logging['ema_fg_dice'][:epoch + 1], color='g', ls='-', label="pseudo dice (mov. avg.)",
-                 linewidth=4)
+        ax.plot(
+            x_values,
+            self.my_fantastic_logging["train_losses"][: epoch + 1],
+            color="b",
+            ls="-",
+            label="loss_tr",
+            linewidth=4,
+        )
+        ax.plot(
+            x_values,
+            self.my_fantastic_logging["val_losses"][: epoch + 1],
+            color="r",
+            ls="-",
+            label="loss_val",
+            linewidth=4,
+        )
+        ax2.plot(
+            x_values,
+            self.my_fantastic_logging["mean_fg_dice"][: epoch + 1],
+            color="g",
+            ls="dotted",
+            label="pseudo dice",
+            linewidth=3,
+        )
+        ax2.plot(
+            x_values,
+            self.my_fantastic_logging["ema_fg_dice"][: epoch + 1],
+            color="g",
+            ls="-",
+            label="pseudo dice (mov. avg.)",
+            linewidth=4,
+        )
         ax.set_xlabel("epoch")
         ax.set_ylabel("loss")
         ax2.set_ylabel("pseudo dice")
@@ -205,9 +239,20 @@ class LocalLogger:
         # epoch times to see whether the training speed is consistent (inconsistent means there are other jobs
         # clogging up the system)
         ax = ax_all[1]
-        ax.plot(x_values, [i - j for i, j in zip(self.my_fantastic_logging['epoch_end_timestamps'][:epoch + 1],
-                                                 self.my_fantastic_logging['epoch_start_timestamps'])][:epoch + 1], color='b',
-                ls='-', label="epoch duration", linewidth=4)
+        ax.plot(
+            x_values,
+            [
+                i - j
+                for i, j in zip(
+                    self.my_fantastic_logging["epoch_end_timestamps"][: epoch + 1],
+                    self.my_fantastic_logging["epoch_start_timestamps"],
+                )
+            ][: epoch + 1],
+            color="b",
+            ls="-",
+            label="epoch duration",
+            linewidth=4,
+        )
         ylim = [0] + [ax.get_ylim()[1]]
         ax.set(ylim=ylim)
         ax.set_xlabel("epoch")
@@ -216,7 +261,14 @@ class LocalLogger:
 
         # learning rate
         ax = ax_all[2]
-        ax.plot(x_values, self.my_fantastic_logging['lrs'][:epoch + 1], color='b', ls='-', label="learning rate", linewidth=4)
+        ax.plot(
+            x_values,
+            self.my_fantastic_logging["lrs"][: epoch + 1],
+            color="b",
+            ls="-",
+            label="learning rate",
+            linewidth=4,
+        )
         ax.set_xlabel("epoch")
         ax.set_ylabel("learning rate")
         ax.legend(loc=(0, 1))
@@ -251,7 +303,9 @@ class WandbLogger:
             verbose: Unused verbosity flag (kept for interface compatibility).
         """
         if wandb is None:
-            raise RuntimeError("W&B is not installed. Please install W&B with 'pip install wandb' before using the WandbLogger.")
+            raise RuntimeError(
+                "W&B is not installed. Please install W&B with 'pip install wandb' before using the WandbLogger."
+            )
 
         self.output_folder = Path(output_folder)
         self.resume = resume
@@ -268,7 +322,9 @@ class WandbLogger:
                 shutil.rmtree(str(self.output_folder / "wandb"))
 
         _resume = "allow" if self.resume else "never"
-        self.run = wandb.init(project=self.project, dir=str(self.output_folder), id=wandb_id, mode=self.mode, resume=_resume)
+        self.run = wandb.init(
+            project=self.project, dir=str(self.output_folder), id=wandb_id, mode=self.mode, resume=_resume
+        )
         self.run.config.update({"JobID": get_cluster_job_id()})
         self.wandb_init_step = self.run.step
 
