@@ -149,7 +149,7 @@ def get_weights(mask_input, skel_input, dim, prob_flag=True):
         mask = mask_input
         skel = skel_input
 
-    distances = distance_transform_edt(mask).float()
+    distances = torch.tensor(distance_transform_edt(mask.cpu()), dtype=torch.float32, device=mask.device)
 
     smooth = 1e-7
     distances[mask == 0] = 0
