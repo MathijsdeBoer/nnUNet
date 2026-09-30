@@ -156,7 +156,7 @@ def _convert_dicom_series(scan_dir: Path, reference_path: Path) -> Path | None:
     if not dicom_dirs:
         return None
 
-    reference_size = sitk.ReadImage(str(reference_path)).GetSize()
+    reference = sitk.ReadImage(str(reference_path))
 
     candidates = []
     for d in dicom_dirs:
@@ -172,15 +172,25 @@ def _convert_dicom_series(scan_dir: Path, reference_path: Path) -> Path | None:
     if not candidates:
         return None
 
-    exact = [img for img in candidates if img.GetSize() == reference_size]
-    # No exact match: assume the largest series (most slices) is the real
-    # diagnostic scan rather than a scout/localizer.
-    chosen = exact[0] if exact else max(candidates, key=lambda img: img.GetSize()[2])
+    matching = [img for img in candidates if _same_geometry(img, reference)]
+    if len(matching) != 1:
+        print(f"  [warn] {scan_dir}: expected one DICOM series matching label geometry, found {len(matching)}")
+        return None
+    chosen = matching[0]
 
     out_path = scan_dir / "ct.nii.gz"
     sitk.WriteImage(chosen, str(out_path))
     print(f"  [info] {scan_dir}: converted DICOM series to ct.nii.gz {chosen.GetSize()}")
     return out_path
+
+
+def _same_geometry(image: sitk.Image, reference: sitk.Image, atol: float = 1e-5) -> bool:
+    return (
+        image.GetSize() == reference.GetSize()
+        and np.allclose(image.GetSpacing(), reference.GetSpacing(), rtol=0, atol=atol)
+        and np.allclose(image.GetOrigin(), reference.GetOrigin(), rtol=0, atol=atol)
+        and np.allclose(image.GetDirection(), reference.GetDirection(), rtol=0, atol=atol)
+    )
 
 
 def resolve_scan(scan_dir: Path, case_id: str) -> Scan | None:

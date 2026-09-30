@@ -11,9 +11,7 @@ from nnunetv2.dataset_conversion.generate_dataset_json import generate_dataset_j
 SEED = 42
 
 
-def split_patients(
-    groups: dict[str, list[Scan]], train_target: int, seed: int = SEED
-) -> tuple[set[str], set[str]]:
+def split_patients(groups: dict[str, list[Scan]], train_target: int, seed: int = SEED) -> tuple[set[str], set[str]]:
     """Patient-level train/test split: a patient's scans never span both splits.
 
     Finds an exact-count split (train_target scans in train, the rest in
@@ -21,32 +19,40 @@ def split_patients(
     a small subset-sum, randomized (but seeded) over which patients land
     where.
     """
-    names = sorted(groups)
+    names = list(groups)
     sizes = {n: len(groups[n]) for n in names}
     total = sum(sizes.values())
-    test_target = total - train_target
-
-    multi = [n for n in names if sizes[n] > 1]
-    single = [n for n in names if sizes[n] == 1]
-
     rng = random.Random(seed)
-    rng.shuffle(multi)
-    rng.shuffle(single)
+    rng.shuffle(names)
 
-    k_order = list(range(len(multi) + 1))
-    rng.shuffle(k_order)
-    for k in k_order:
-        train_multi = multi[:k]
-        remaining = train_target - sum(sizes[n] for n in train_multi)
-        if 0 <= remaining <= len(single):
-            train_names = set(train_multi) | set(single[:remaining])
-            test_names = set(names) - train_names
-            assert sum(sizes[n] for n in train_names) == train_target
-            assert sum(sizes[n] for n in test_names) == test_target
-            return train_names, test_names
+    if not 0 <= train_target <= total:
+        raise ValueError(f"train_target must be between 0 and {total}, got {train_target}")
 
-    msg = f"No valid {train_target}/{test_target} split for patient group sizes {sorted(sizes.values())}"
-    raise ValueError(msg)
+    # Store one predecessor per reachable total; this is an exact subset-sum
+    # over patients and never splits a patient's repeat scans across datasets.
+    predecessors = {0: None}
+    for name in names:
+        size = sizes[name]
+        for partial_sum in tuple(predecessors):
+            new_sum = partial_sum + size
+            if new_sum <= train_target and new_sum not in predecessors:
+                predecessors[new_sum] = (partial_sum, name)
+
+    if train_target not in predecessors:
+        msg = f"No valid {train_target}/{total - train_target} split for patient group sizes {sorted(sizes.values())}"
+        raise ValueError(msg)
+
+    train_names = set()
+    remaining = train_target
+    while remaining:
+        previous_sum, name = predecessors[remaining]
+        train_names.add(name)
+        remaining = previous_sum
+
+    test_names = set(groups) - train_names
+    assert sum(sizes[n] for n in train_names) == train_target
+    assert sum(sizes[n] for n in test_names) == total - train_target
+    return train_names, test_names
 
 
 if __name__ == "__main__":

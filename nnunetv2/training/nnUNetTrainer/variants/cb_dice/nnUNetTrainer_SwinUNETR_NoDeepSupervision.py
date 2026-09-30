@@ -3,12 +3,25 @@ import torch
 from torch import nn
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from nnunetv2.training.nnUNetTrainer.variants.cb_dice.monai.swin_unetr import SwinUNETR
 from nnunetv2.training.nnUNetTrainer.variants.cb_dice.nnUNetTrainerNoDeepSupervision import (
     nnUNetTrainerNoDeepSupervision,
 )
 from nnunetv2.utilities.plans_handling.plans_handler import ConfigurationManager, PlansManager
 from nnunetv2.utilities.label_handling.label_handling import determine_num_input_channels
+
+
+def _build_swinunetr(in_channels: int, out_channels: int, spatial_dims: int) -> nn.Module:
+    try:
+        from monai.networks.nets import SwinUNETR
+    except ImportError as e:
+        raise ImportError("SwinUNETR requires MONAI and a compatible PyTorch installation.") from e
+
+    return SwinUNETR(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        spatial_dims=spatial_dims,
+        use_v2=False,
+    )
 
 
 class nnUNetTrainer_SwinUNETR_NoDeepSupervision(nnUNetTrainerNoDeepSupervision):
@@ -23,13 +36,8 @@ class nnUNetTrainer_SwinUNETR_NoDeepSupervision(nnUNetTrainerNoDeepSupervision):
             patch_size = self.configuration_manager.patch_size
             self.num_input_channels, label_manager.num_segmentation_heads
 
-            patch_size_tuple = tuple(patch_size)
-            self.network = SwinUNETR(
-                img_size=patch_size_tuple,
-                in_channels=self.num_input_channels,
-                out_channels=label_manager.num_segmentation_heads,
-                spatial_dims=len(patch_size),
-                use_v2=False,
+            self.network = _build_swinunetr(
+                self.num_input_channels, label_manager.num_segmentation_heads, len(patch_size)
             ).to(self.device)
 
             # compile network for free speedup
@@ -64,14 +72,6 @@ class nnUNetTrainer_SwinUNETR_NoDeepSupervision(nnUNetTrainerNoDeepSupervision):
 
         label_manager = plans_manager.get_label_manager(dataset_json)
 
-        patch_size = configuration_manager.patch_size
-        patch_size_tuple = tuple(patch_size)
-        network = SwinUNETR(
-            img_size=patch_size_tuple,
-            in_channels=num_input_channels,
-            out_channels=label_manager.num_segmentation_heads,
-            spatial_dims=len(patch_size),
-            use_v2=False,
+        return _build_swinunetr(
+            num_input_channels, label_manager.num_segmentation_heads, len(configuration_manager.patch_size)
         )
-
-        return network

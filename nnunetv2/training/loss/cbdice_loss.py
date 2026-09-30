@@ -1,5 +1,5 @@
 import torch
-from monai.transforms.utils import distance_transform_edt
+from scipy.ndimage import distance_transform_edt
 from nnunetv2.training.loss.skeletonize import Skeletonize
 from nnunetv2.training.loss.soft_skeleton import SoftSkeletonize
 
@@ -138,6 +138,17 @@ def combine_tensors(A, B, C):
     return D
 
 
+def _distance_transform_per_sample(mask):
+    return torch.stack(
+        [
+            torch.as_tensor(
+                distance_transform_edt(sample.detach().cpu().numpy()), dtype=torch.float32, device=mask.device
+            )
+            for sample in mask
+        ]
+    )
+
+
 def get_weights(mask_input, skel_input, dim, prob_flag=True):
     if prob_flag:
         mask_prob = mask_input
@@ -149,7 +160,7 @@ def get_weights(mask_input, skel_input, dim, prob_flag=True):
         mask = mask_input
         skel = skel_input
 
-    distances = torch.as_tensor(distance_transform_edt(mask.cpu()), dtype=torch.float32, device=mask.device)
+    distances = _distance_transform_per_sample(mask)
 
     smooth = 1e-7
     distances[mask == 0] = 0

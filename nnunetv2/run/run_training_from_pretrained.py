@@ -2,41 +2,28 @@ import argparse
 from functools import partial
 from typing import Union
 
-import nnunetv2
 import torch
 from batchgenerators.utilities.file_and_folder_operations import join, load_json
 from nnunetv2.paths import nnUNet_preprocessed
 from nnunetv2.run.run_training import TrainingRunOptions, launch_training
-from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer
 from nnunetv2.training.nnUNetTrainer.pretraining.pretrainedTrainer import PretrainedTrainer
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
-from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
+from nnunetv2.utilities.find_objects import recursive_find_trainer_class_by_name
+
 
 def get_trainer_from_args(
-        dataset_name_or_id: Union[int, str],
-        configuration: str,
-        fold: int,
-        trainer_name: str = "nnUNetTrainer",
-        plans_identifier: str = "nnUNetPlans",
-        device: torch.device = torch.device("cuda"),
-        pretrained_from_scratch: bool = False,
-        overwrite_ckpt_path: str = None,
-        continue_training: bool = False,
+    dataset_name_or_id: Union[int, str],
+    configuration: str,
+    fold: int,
+    trainer_name: str = "nnUNetTrainer",
+    plans_identifier: str = "nnUNetPlans",
+    device: torch.device = torch.device("cuda"),
+    pretrained_from_scratch: bool = False,
+    overwrite_ckpt_path: str = None,
+    continue_training: bool = False,
 ):
     # load nnunet class and do sanity checks
-    nnunet_trainer = recursive_find_python_class(
-        join(nnunetv2.__path__[0], "training", "nnUNetTrainer"), trainer_name, "nnunetv2.training.nnUNetTrainer"
-    )
-    if nnunet_trainer is None:
-        raise RuntimeError(
-            f"Could not find requested nnunet trainer {trainer_name} in "
-            f"nnunetv2.training.nnUNetTrainer ("
-            f'{join(nnunetv2.__path__[0], "training", "nnUNetTrainer")}). If it is located somewhere '
-            f"else, please move it there."
-        )
-    assert issubclass(nnunet_trainer, nnUNetTrainer), (
-        "The requested nnunet trainer class must inherit from " "nnUNetTrainer"
-    )
+    nnunet_trainer = recursive_find_trainer_class_by_name(trainer_name)
 
     # handle dataset input. If it's an ID we need to convert to int from string
     if dataset_name_or_id.startswith("Dataset"):
@@ -71,9 +58,18 @@ def get_trainer_from_args(
     nnunet_trainer.use_pretrained_weights = not pretrained_from_scratch
     return nnunet_trainer
 
-def pretrained_trainer_from_args(dataset_name_or_id, configuration, fold, trainer_class_name, plans_identifier,
-                                 from_scratch, continue_training, overwrite_ckpt_path,
-                                 device: torch.device) -> PretrainedTrainer:
+
+def pretrained_trainer_from_args(
+    dataset_name_or_id,
+    configuration,
+    fold,
+    trainer_class_name,
+    plans_identifier,
+    from_scratch,
+    continue_training,
+    overwrite_ckpt_path,
+    device: torch.device,
+) -> PretrainedTrainer:
     """get_trainer_from_args with device last, so that functools.partial can bind the rest."""
     nnunet_trainer: PretrainedTrainer = get_trainer_from_args(
         dataset_name_or_id,
@@ -118,17 +114,27 @@ def train_pretrained(
                 )
                 raise e
 
-    trainer_factory = partial(pretrained_trainer_from_args, dataset_name_or_id, configuration, fold,
-                              trainer_class_name, plans_identifier, from_scratch, continue_training,
-                              overwrite_ckpt_path)
+    trainer_factory = partial(
+        pretrained_trainer_from_args,
+        dataset_name_or_id,
+        configuration,
+        fold,
+        trainer_class_name,
+        plans_identifier,
+        from_scratch,
+        continue_training,
+        overwrite_ckpt_path,
+    )
     # pretrained_weights is nnUNetv2_train's -pretrained_weights, which this entry point does not expose: the
     # weights come from the plan's pretrain_info instead.
-    options = TrainingRunOptions(pretrained_weights=None,
-                                 export_validation_probabilities=export_validation_probabilities,
-                                 continue_training=continue_training,
-                                 only_run_validation=only_run_validation,
-                                 disable_checkpointing=disable_checkpointing,
-                                 val_with_best=val_with_best)
+    options = TrainingRunOptions(
+        pretrained_weights=None,
+        export_validation_probabilities=export_validation_probabilities,
+        continue_training=continue_training,
+        only_run_validation=only_run_validation,
+        disable_checkpointing=disable_checkpointing,
+        val_with_best=val_with_best,
+    )
     launch_training(trainer_factory, device, num_gpus, options)
 
 
@@ -137,7 +143,10 @@ def train_pretrained_entrypoint():
     parser.add_argument("dataset_name_or_id", type=str, help="Dataset name or ID to train with")
     parser.add_argument("configuration", type=str, help="Configuration that should be trained")
     parser.add_argument(
-        "fold", type=str, help="Fold of the 5-fold cross-validation.", choices=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "all"]
+        "fold",
+        type=str,
+        help="Fold of the 5-fold cross-validation.",
+        choices=["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "all"],
     )
     parser.add_argument(
         "-tr",
@@ -244,7 +253,7 @@ def train_pretrained_entrypoint():
         args.disable_checkpointing,
         args.val_best,
         device=device,
-        overwrite_ckpt_path=args.overwrite_ckpt_path
+        overwrite_ckpt_path=args.overwrite_ckpt_path,
     )
 
 
