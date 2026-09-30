@@ -52,12 +52,12 @@ if __name__ == "__main__":
     configurations_2d_only = {i: ("2d",) for i in configurations_all if "2d" in configurations_all[i]}
 
     num_gpus = 1
-    exclude_hosts = "-R \"select[hname!='e230-dgx2-2']\" -R \"select[hname!='e230-dgx2-1']\""
+    exclude_hosts = ""
     resources = ""
     gpu_requirements = f"-gpu num={num_gpus}:j_exclusive=yes:gmem=23G"  # gmodel=NVIDIAA100_PCIE_40GB"
     queue = "-q gpu-pro"
-    preamble = '". /home/isensee/env_loading_scripts/continuous_performance_monitoring/load_env_torch211.sh && '  # -L /bin/bash
-    train_command = "nnUNetv2_train"
+    preamble = "\". /home/isensee/env_loading_scripts/continuous_performance_monitoring/load_env_torch2130.sh && " # -L /bin/bash
+    train_command = 'nnUNetv2_train'
 
     folds = (0,)
     # use_this = configurations_2d_only

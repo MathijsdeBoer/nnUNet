@@ -170,7 +170,7 @@ def plot_overlay_preprocessed(
 ):
     import matplotlib.pyplot as plt
 
-    data, seg, _, properties = dataset.load_case(k)
+    data, seg, _, _ = dataset.load_case(k)
 
     assert channel_idx < (data.shape[0]), "This dataset only supports channel index up to %d" % (data.shape[0] - 1)
 

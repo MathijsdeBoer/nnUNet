@@ -19,6 +19,7 @@ from typing import Union
 
 import SimpleITK
 import numpy as np
+import pandas as pd
 from batchgenerators.utilities.file_and_folder_operations import *
 from tqdm import tqdm
 
@@ -26,7 +27,7 @@ import nnunetv2
 from nnunetv2.paths import nnUNet_preprocessed, nnUNet_raw
 from nnunetv2.preprocessing.cropping.cropping import crop_to_nonzero
 from nnunetv2.preprocessing.resampling.default_resampling import compute_new_shape
-from nnunetv2.training.dataloading.nnunet_dataset import nnUNetDatasetBlosc2
+from nnunetv2.training.dataloading.nnunet_dataset import nnUNetDatasetBlosc2, comp_blosc2_params
 from nnunetv2.utilities.dataset_name_id_conversion import maybe_convert_to_dataset_name
 from nnunetv2.utilities.find_class_by_name import recursive_find_python_class
 from nnunetv2.utilities.plans_handling.plans_handler import PlansManager, ConfigurationManager
@@ -102,27 +103,20 @@ class DefaultPreprocessor(object):
                 f"new_spacing: {target_spacing}, fn_data: {configuration_manager.resampling_fn_data}"
             )
 
-        # if we have a segmentation, sample foreground locations for oversampling and add those to properties
+        # NOTE: foreground sampling locations (formerly properties['class_locations']) are no longer stored
+        # here. They live in a compressed, partially readable store per configuration folder that is built by
+        # nnUNetv2_extract_sampling_locations (plan_and_preprocess runs it for you). Keeping them in the pkl
+        # made those files enormous (18 GB on TotalSegmentator v2) even though the dataloader only ever needs
+        # a single coordinate per patch. See nnunetv2/training/dataloading/foreground_locations.py.
         if has_seg:
-            # reinstantiating LabelManager for each case is not ideal. We could replace the dataset_json argument
-            # with a LabelManager Instance in this function because that's all its used for. Dunno what's better.
-            # LabelManager is pretty light computation-wise.
-            label_manager = plans_manager.get_label_manager(dataset_json)
-            collect_for_this = (
-                label_manager.foreground_regions if label_manager.has_regions else label_manager.foreground_labels
-            )
-
-            # when using the ignore label we want to sample only from annotated regions. Therefore we also need to
-            # collect samples uniformly from all classes (incl background)
-            if label_manager.has_ignore_label:
-                collect_for_this.append([-1] + label_manager.all_labels)
-
-            # no need to filter background in regions because it is already filtered in handle_labels
-            # print(all_labels, regions)
-            properties["class_locations"] = self._sample_foreground_locations(
-                seg, collect_for_this, verbose=self.verbose
-            )
             seg = self.modify_seg_fn(seg, plans_manager, dataset_json, configuration_manager)
+            # Record which labels this case contains. This happens *after* modify_seg_fn because the sampling
+            # locations are extracted from the stored segmentation, so that is the array these must describe.
+            # The segmentation is in memory here anyway, which makes this the one place where it is nearly free
+            # - nnUNetv2_extract_sampling_locations must not have to scan the segmentation again to get it.
+            # np.sort(pd.unique(x.ravel())) is deliberate: measurably faster than np.unique (~17 vs ~26 ms on a
+            # 10 M voxel TotalSegmentator segmentation).
+            properties['present_labels'] = [int(i) for i in np.sort(pd.unique(seg.ravel()))]
         if np.max(seg) > 127:
             seg = seg.astype(np.int16)
         else:
@@ -178,11 +172,15 @@ class DefaultPreprocessor(object):
         data = data.astype(np.float32, copy=False)
         seg = seg.astype(np.int16, copy=False)
         # print('dtypes', data.dtype, seg.dtype)
-        block_size_data, chunk_size_data = nnUNetDatasetBlosc2.comp_blosc2_params(
-            data.shape, tuple(configuration_manager.patch_size), data.itemsize
+        block_size_data, chunk_size_data = comp_blosc2_params(
+            data.shape,
+            tuple(configuration_manager.patch_size),
+            data.itemsize,
         )
-        block_size_seg, chunk_size_seg = nnUNetDatasetBlosc2.comp_blosc2_params(
-            seg.shape, tuple(configuration_manager.patch_size), seg.itemsize
+        block_size_seg, chunk_size_seg = comp_blosc2_params(
+            seg.shape,
+            tuple(configuration_manager.patch_size),
+            seg.itemsize,
         )
 
         nnUNetDatasetBlosc2.save_case(
@@ -204,7 +202,15 @@ class DefaultPreprocessor(object):
         verbose: bool = False,
         min_num_samples=10000,
         min_percent_coverage=0.01,
+    present_labels: Union[List[int], None] = None,
     ):
+        """
+        present_labels: the labels this segmentation is known to contain (properties['present_labels'] for a
+        freshly preprocessed case, or derived from a legacy class_locations dict). Purely an optimization -
+        labels that are not in the segmentation cannot contribute anything, so pruning them here shrinks the
+        np.isin below. Results are identical either way, but it must never be missing a label that IS present:
+        those voxels would be dropped from valid_mask and that class would come out empty.
+        """
 
         rndst = np.random.RandomState(seed)
 
@@ -222,6 +228,9 @@ class DefaultPreprocessor(object):
                 lab = int(c)
                 normalized.append(lab)
                 requested_labels.add(lab)
+
+        if present_labels is not None:
+            requested_labels &= set(int(i) for i in present_labels)
 
         # Create mask for all requested labels (this includes 0 if requested)
         requested_labels_arr = np.fromiter(requested_labels, dtype=np.int32)
