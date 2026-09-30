@@ -116,7 +116,7 @@ class DefaultPreprocessor(object):
             # - nnUNetv2_extract_sampling_locations must not have to scan the segmentation again to get it.
             # np.sort(pd.unique(x.ravel())) is deliberate: measurably faster than np.unique (~17 vs ~26 ms on a
             # 10 M voxel TotalSegmentator segmentation).
-            properties['present_labels'] = [int(i) for i in np.sort(pd.unique(seg.ravel()))]
+            properties["present_labels"] = [int(i) for i in np.sort(pd.unique(seg.ravel()))]
         if np.max(seg) > 127:
             seg = seg.astype(np.int16)
         else:
@@ -202,7 +202,7 @@ class DefaultPreprocessor(object):
         verbose: bool = False,
         min_num_samples=10000,
         min_percent_coverage=0.01,
-    present_labels: Union[List[int], None] = None,
+        present_labels: Union[List[int], None] = None,
     ):
         """
         present_labels: the labels this segmentation is known to contain (properties['present_labels'] for a

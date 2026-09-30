@@ -30,12 +30,12 @@ def launched_by_external_launcher() -> bool:
     WORLD_SIZE + LOCAL_RANK triple, but we insist on all three: a stale RANK left over in someone's shell must
     not silently turn `-num_gpus 4` into a single process job.
     """
-    if 'TORCHELASTIC_RUN_ID' in os.environ:
+    if "TORCHELASTIC_RUN_ID" in os.environ:
         return True
-    return all(k in os.environ for k in ('RANK', 'WORLD_SIZE', 'LOCAL_RANK'))
+    return all(k in os.environ for k in ("RANK", "WORLD_SIZE", "LOCAL_RANK"))
 
 
-_INIT_PROCESS_GROUP_SUPPORTS_DEVICE_ID = 'device_id' in inspect.signature(dist.init_process_group).parameters
+_INIT_PROCESS_GROUP_SUPPORTS_DEVICE_ID = "device_id" in inspect.signature(dist.init_process_group).parameters
 
 
 def init_ddp_process_group(device: torch.device, **kwargs) -> None:
@@ -48,7 +48,7 @@ def init_ddp_process_group(device: torch.device, **kwargs) -> None:
     torch 2.3 and we support torch >= 2.1.2, hence the check.
     """
     if _INIT_PROCESS_GROUP_SUPPORTS_DEVICE_ID:
-        kwargs['device_id'] = device
+        kwargs["device_id"] = device
     dist.init_process_group(**kwargs)
 
 
@@ -141,6 +141,7 @@ def maybe_load_checkpoint(
 @dataclass
 class TrainingRunOptions:
     """Everything that steers a training run but is not the trainer itself."""
+
     pretrained_weights: Optional[str] = None
     export_validation_probabilities: bool = False
     continue_training: bool = False
@@ -149,8 +150,9 @@ class TrainingRunOptions:
     val_with_best: bool = False
 
 
-def execute_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], device: torch.device,
-                     options: TrainingRunOptions) -> None:
+def execute_training(
+    trainer_factory: Callable[[torch.device], nnUNetTrainer], device: torch.device, options: TrainingRunOptions
+) -> None:
     """
     Build the trainer and run it. Knows nothing about how the process was started - by the time we get here the
     process group, if there is one, already exists and `device` is ours.
@@ -160,11 +162,13 @@ def execute_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], d
     if options.disable_checkpointing:
         nnunet_trainer.disable_checkpointing = options.disable_checkpointing
 
-    assert not (options.continue_training and options.only_run_validation), \
-        'Cannot set --c and --val flag at the same time. Dummy.'
+    assert not (options.continue_training and options.only_run_validation), (
+        "Cannot set --c and --val flag at the same time. Dummy."
+    )
 
-    maybe_load_checkpoint(nnunet_trainer, options.continue_training, options.only_run_validation,
-                          options.pretrained_weights)
+    maybe_load_checkpoint(
+        nnunet_trainer, options.continue_training, options.only_run_validation, options.pretrained_weights
+    )
 
     if torch.cuda.is_available():
         cudnn.deterministic = False
@@ -174,12 +178,13 @@ def execute_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], d
         nnunet_trainer.run_training()
 
     if options.val_with_best:
-        nnunet_trainer.load_checkpoint(join(nnunet_trainer.output_folder, 'checkpoint_best.pth'))
+        nnunet_trainer.load_checkpoint(join(nnunet_trainer.output_folder, "checkpoint_best.pth"))
     nnunet_trainer.perform_actual_validation(options.export_validation_probabilities)
 
 
-def run_intranode_ddp(rank: int, trainer_factory: Callable[[torch.device], nnUNetTrainer], world_size: int,
-                      options: TrainingRunOptions) -> None:
+def run_intranode_ddp(
+    rank: int, trainer_factory: Callable[[torch.device], nnUNetTrainer], world_size: int, options: TrainingRunOptions
+) -> None:
     """
     One worker of a `-num_gpus X` launch. mp.spawn pickles the arguments, so trainer_factory must be picklable:
     a functools.partial over a module level function is, a lambda or closure is not.
@@ -191,7 +196,7 @@ def run_intranode_ddp(rank: int, trainer_factory: Callable[[torch.device], nnUNe
     os.environ["LOCAL_RANK"] = str(rank)
     os.environ["LOCAL_WORLD_SIZE"] = str(world_size)
 
-    device = torch.device('cuda', rank)
+    device = torch.device("cuda", rank)
     torch.cuda.set_device(device)
     init_ddp_process_group(device, backend="nccl", rank=rank, world_size=world_size)
 
@@ -202,8 +207,12 @@ def run_intranode_ddp(rank: int, trainer_factory: Callable[[torch.device], nnUNe
             dist.destroy_process_group()
 
 
-def launch_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], device: torch.device,
-                    num_gpus: int, options: TrainingRunOptions) -> None:
+def launch_training(
+    trainer_factory: Callable[[torch.device], nnUNetTrainer],
+    device: torch.device,
+    num_gpus: int,
+    options: TrainingRunOptions,
+) -> None:
     """
     The single entry point for all three ways a training can be started, shared by nnUNetv2_train and
     nnUNetv2_train_pretrained:
@@ -214,23 +223,27 @@ def launch_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], de
     - everything else: one plain process.
     """
     if options.val_with_best:
-        assert not options.disable_checkpointing, '--val_best is not compatible with --disable_checkpointing'
+        assert not options.disable_checkpointing, "--val_best is not compatible with --disable_checkpointing"
 
     external_launcher = launched_by_external_launcher()
 
     if external_launcher or num_gpus == 1:
         if external_launcher:
-            assert device.type == 'cuda', f"DDP training is only implemented for cuda devices. Your device: {device}"
-            assert num_gpus == 1, ("Your distributed environment was set up by an external launcher (torchrun or "
-                                   "similar), so do not also pass -num_gpus: the launcher, not nnU-Net, decides how "
-                                   "many processes there are and which GPU each one gets. Use -num_gpus only when "
-                                   "starting the training directly.")
+            assert device.type == "cuda", f"DDP training is only implemented for cuda devices. Your device: {device}"
+            assert num_gpus == 1, (
+                "Your distributed environment was set up by an external launcher (torchrun or "
+                "similar), so do not also pass -num_gpus: the launcher, not nnU-Net, decides how "
+                "many processes there are and which GPU each one gets. Use -num_gpus only when "
+                "starting the training directly."
+            )
             local_rank = int(os.environ["LOCAL_RANK"])
-            device = torch.device('cuda', local_rank)
+            device = torch.device("cuda", local_rank)
             torch.cuda.set_device(device)
-            init_ddp_process_group(device, backend='nccl', init_method='env://')
-            print(f"Distributed launcher detected. [rank {os.environ.get('RANK', '?')} of "
-                  f"{os.environ.get('WORLD_SIZE', '?')}] using cuda:{local_rank}")
+            init_ddp_process_group(device, backend="nccl", init_method="env://")
+            print(
+                f"Distributed launcher detected. [rank {os.environ.get('RANK', '?')} of "
+                f"{os.environ.get('WORLD_SIZE', '?')}] using cuda:{local_rank}"
+            )
 
         try:
             execute_training(trainer_factory, device, options)
@@ -238,23 +251,26 @@ def launch_training(trainer_factory: Callable[[torch.device], nnUNetTrainer], de
             if dist.is_initialized():
                 dist.destroy_process_group()
     else:
-        assert device.type == 'cuda', \
+        assert device.type == "cuda", (
             f"DDP training (triggered by num_gpus > 1) is only implemented for cuda devices. Your device: {device}"
+        )
 
-        os.environ['MASTER_ADDR'] = 'localhost'
-        if 'MASTER_PORT' not in os.environ.keys():
+        os.environ["MASTER_ADDR"] = "localhost"
+        if "MASTER_PORT" not in os.environ.keys():
             port = str(find_free_network_port())
             print(f"using port {port}")
-            os.environ['MASTER_PORT'] = port  # str(port)
+            os.environ["MASTER_PORT"] = port  # str(port)
 
         mp.spawn(run_intranode_ddp, args=(trainer_factory, num_gpus, options), nprocs=num_gpus, join=True)
 
 
-def trainer_from_args(dataset_name_or_id, configuration, fold, trainer_name, plans_identifier,
-                      continue_training, device: torch.device) -> nnUNetTrainer:
+def trainer_from_args(
+    dataset_name_or_id, configuration, fold, trainer_name, plans_identifier, continue_training, device: torch.device
+) -> nnUNetTrainer:
     """get_trainer_from_args with device last, so that functools.partial can bind the rest."""
-    return get_trainer_from_args(dataset_name_or_id, configuration, fold, trainer_name, plans_identifier,
-                                 continue_training, device=device)
+    return get_trainer_from_args(
+        dataset_name_or_id, configuration, fold, trainer_name, plans_identifier, continue_training, device=device
+    )
 
 
 def run_training(
@@ -290,14 +306,23 @@ def run_training(
                 )
                 raise e
 
-    trainer_factory = partial(trainer_from_args, dataset_name_or_id, configuration, fold, trainer_class_name,
-                              plans_identifier, continue_training)
-    options = TrainingRunOptions(pretrained_weights=pretrained_weights,
-                                 export_validation_probabilities=export_validation_probabilities,
-                                 continue_training=continue_training,
-                                 only_run_validation=only_run_validation,
-                                 disable_checkpointing=disable_checkpointing,
-                                 val_with_best=val_with_best)
+    trainer_factory = partial(
+        trainer_from_args,
+        dataset_name_or_id,
+        configuration,
+        fold,
+        trainer_class_name,
+        plans_identifier,
+        continue_training,
+    )
+    options = TrainingRunOptions(
+        pretrained_weights=pretrained_weights,
+        export_validation_probabilities=export_validation_probabilities,
+        continue_training=continue_training,
+        only_run_validation=only_run_validation,
+        disable_checkpointing=disable_checkpointing,
+        val_with_best=val_with_best,
+    )
     launch_training(trainer_factory, device, num_gpus, options)
 
 

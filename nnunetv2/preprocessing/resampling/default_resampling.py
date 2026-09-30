@@ -199,9 +199,7 @@ def resample_data_or_seg(
                         coords = scale * (np.arange(new_shape[axis]) + 0.5) - 0.5
                         # np.floor(x + 0.5) rather than np.round: this must match how map_coordinates
                         # rounds at order 0, which is not numpy's round-half-to-even.
-                        indices = np.clip(
-                            np.floor(coords + 0.5).astype(np.intp), 0, reshaped_here.shape[axis] - 1
-                        )
+                        indices = np.clip(np.floor(coords + 0.5).astype(np.intp), 0, reshaped_here.shape[axis] - 1)
                         reshaped_final[c] = reshaped_here.take(indices, axis=axis)
                     else:
                         # The following few lines are blatantly copied and modified from sklearn's resize()

@@ -108,23 +108,25 @@ class nnUNetTrainer(object):
 
         # print what device we are using
         if self.is_ddp:  # implicitly it's clear that we use cuda in this case
-            assert device.type == 'cuda', f'DDP only works with CUDA devices. You have {device.type}'
+            assert device.type == "cuda", f"DDP only works with CUDA devices. You have {device.type}"
 
             # local_rank is the CUDA device index, global_rank decides who writes files. On a single node the two
             # are identical, across nodes they are not!
             self.local_rank, self.global_rank, self.world_size, self.local_world_size = get_ddp_topology()
 
-            self.device = torch.device(type='cuda', index=self.local_rank)
+            self.device = torch.device(type="cuda", index=self.local_rank)
             torch.cuda.set_device(self.device)
 
-            print(f"The world size is {self.world_size}. I am global rank {self.global_rank}. "
-                  f"I am local rank {self.local_rank}. {device_count()} GPUs are available. "
-                  f"Setting device to {self.device}")
+            print(
+                f"The world size is {self.world_size}. I am global rank {self.global_rank}. "
+                f"I am local rank {self.local_rank}. {device_count()} GPUs are available. "
+                f"Setting device to {self.device}"
+            )
         else:
-            if device.type == 'cuda':
+            if device.type == "cuda":
                 # we might want to let the user pick this but for now please pick the correct GPU with
                 # CUDA_VISIBLE_DEVICES=X
-                self.device = torch.device(type='cuda', index=0)
+                self.device = torch.device(type="cuda", index=0)
             else:
                 self.device = device
 
@@ -265,7 +267,7 @@ class nnUNetTrainer(object):
         # used to detect if we have received a termination signal because the cluster job is running into timeout ->
         # triggers a graceful exit at the next epoch boundary. SIGUSR1 does not exist on Windows.
         self.exit_training_flag = False
-        if hasattr(signal, 'SIGUSR1'):
+        if hasattr(signal, "SIGUSR1"):
             signal.signal(signal.SIGUSR1, self.exit_training)
 
     def initialize(self):
@@ -324,7 +326,8 @@ class nnUNetTrainer(object):
                     self.network,
                     device_ids=[self.local_rank],
                     output_device=self.local_rank,
-                    find_unused_parameters=False)
+                    find_unused_parameters=False,
+                )
 
             self.loss = self._build_loss()
 
@@ -484,18 +487,21 @@ class nnUNetTrainer(object):
         else:
             # batch size is distributed over DDP workers and we need to change oversample_percent for each worker
             global_batch_size = self.configuration_manager.batch_size
-            assert global_batch_size >= self.world_size, 'Cannot run DDP if the batch size is smaller than the number of ' \
-                                                    'GPUs... Duh.'
+            assert global_batch_size >= self.world_size, (
+                "Cannot run DDP if the batch size is smaller than the number of GPUs... Duh."
+            )
 
             batch_size_per_GPU = [global_batch_size // self.world_size] * self.world_size
-            batch_size_per_GPU = [batch_size_per_GPU[i] + 1
-                                  if (batch_size_per_GPU[i] * self.world_size + i) < global_batch_size
-                                  else batch_size_per_GPU[i]
-                                  for i in range(len(batch_size_per_GPU))]
+            batch_size_per_GPU = [
+                batch_size_per_GPU[i] + 1
+                if (batch_size_per_GPU[i] * self.world_size + i) < global_batch_size
+                else batch_size_per_GPU[i]
+                for i in range(len(batch_size_per_GPU))
+            ]
             assert sum(batch_size_per_GPU) == global_batch_size
 
-            sample_id_low = 0 if self.global_rank == 0 else np.sum(batch_size_per_GPU[:self.global_rank])
-            sample_id_high = np.sum(batch_size_per_GPU[:self.global_rank + 1])
+            sample_id_low = 0 if self.global_rank == 0 else np.sum(batch_size_per_GPU[: self.global_rank])
+            sample_id_high = np.sum(batch_size_per_GPU[: self.global_rank + 1])
 
             # This is how oversampling is determined in DataLoader
             # round(self.batch_size * (1 - self.oversample_foreground_percent))
@@ -512,7 +518,9 @@ class nnUNetTrainer(object):
             elif sample_id_low / global_batch_size > (1 - self.oversample_foreground_percent):
                 oversample_percent = 1.0
             else:
-                oversample_percent = sum(oversample[sample_id_low:sample_id_high]) / batch_size_per_GPU[self.global_rank]
+                oversample_percent = (
+                    sum(oversample[sample_id_low:sample_id_high]) / batch_size_per_GPU[self.global_rank]
+                )
 
             print("global rank", self.global_rank, "oversample", oversample_percent)
             print("global rank", self.global_rank, "batch_size", batch_size_per_GPU[self.global_rank])
@@ -556,7 +564,7 @@ class nnUNetTrainer(object):
 
         if self.enable_deep_supervision:
             deep_supervision_scales = self._get_deep_supervision_scales()
-            weights = np.array([1 / (2 ** i) for i in range(len(deep_supervision_scales))])
+            weights = np.array([1 / (2**i) for i in range(len(deep_supervision_scales))])
             if self.is_ddp and not self._do_i_compile():
                 # very strange and stupid interaction. DDP crashes and complains about unused parameters due to
                 # weights[-1] = 0. Interestingly this crash doesn't happen with torch.compile enabled. Strange stuff.
@@ -1217,7 +1225,7 @@ class nnUNetTrainer(object):
 
         if self.is_ddp:
             losses_tr = [None for _ in range(self.world_size)]
-            dist.all_gather_object(losses_tr, outputs['loss'])
+            dist.all_gather_object(losses_tr, outputs["loss"])
             loss_here = np.vstack(losses_tr).mean()
         else:
             loss_here = np.mean(outputs["loss"])
@@ -1314,7 +1322,7 @@ class nnUNetTrainer(object):
             fn = np.vstack([i[None] for i in fns]).sum(0)
 
             losses_val = [None for _ in range(self.world_size)]
-            dist.all_gather_object(losses_val, outputs_collated['loss'])
+            dist.all_gather_object(losses_val, outputs_collated["loss"])
             loss_here = np.vstack(losses_val).mean()
         else:
             loss_here = np.mean(outputs_collated["loss"])
@@ -1345,9 +1353,11 @@ class nnUNetTrainer(object):
         exit_now = self._exit_signal_received()
 
         # handling periodic checkpointing
-        save_latest_checkpoint = (self.current_epoch + 1) % self.save_every == 0 and self.current_epoch != (self.num_epochs - 1)
+        save_latest_checkpoint = (self.current_epoch + 1) % self.save_every == 0 and self.current_epoch != (
+            self.num_epochs - 1
+        )
         if save_latest_checkpoint or exit_now:
-            self.save_checkpoint(join(self.output_folder, 'checkpoint_latest.pth'))
+            self.save_checkpoint(join(self.output_folder, "checkpoint_latest.pth"))
 
         # handle 'best' checkpointing. ema_fg_dice is computed by the logger and can be accessed like this
         if self._best_ema is None or self.logger.get_value("ema_fg_dice", step=-1) > self._best_ema:
@@ -1359,10 +1369,12 @@ class nnUNetTrainer(object):
             self.logger.plot_progress_png(self.output_folder)
 
         if exit_now:
-            self.print_to_log_file("Epoch ended and termination signal received. checkpoint_latest.pth is written, "
-                                   "so let's exit gracefully. Now lets raise the keyboard into the sky and interrupt "
-                                   "this madness. Expecting either the user or an automated script to continue this "
-                                   "training with --c.")
+            self.print_to_log_file(
+                "Epoch ended and termination signal received. checkpoint_latest.pth is written, "
+                "so let's exit gracefully. Now lets raise the keyboard into the sky and interrupt "
+                "this madness. Expecting either the user or an automated script to continue this "
+                "training with --c."
+            )
             sys.exit(0)
 
         self.current_epoch += 1
@@ -1472,31 +1484,36 @@ class nnUNetTrainer(object):
         with self.network.no_sync() if self.is_ddp else dummy_context():
             with multiprocessing.get_context("spawn").Pool(default_num_processes) as segmentation_export_pool:
                 worker_list = [i for i in segmentation_export_pool._pool]
-                validation_output_folder = join(self.output_folder, 'validation')
+                validation_output_folder = join(self.output_folder, "validation")
                 maybe_mkdir_p(validation_output_folder)
 
                 # we cannot use self.get_tr_and_val_datasets() here because we might be DDP and then we have to distribute
                 # the validation keys across the workers.
                 _, val_keys = self.do_split()
                 if self.is_ddp:
-                    val_keys = val_keys[self.global_rank:: self.world_size]
+                    val_keys = val_keys[self.global_rank :: self.world_size]
 
-                dataset_val = self.dataset_class(self.preprocessed_dataset_folder, val_keys,
-                                                 folder_with_segs_from_previous_stage=self.folder_with_segs_from_previous_stage)
+                dataset_val = self.dataset_class(
+                    self.preprocessed_dataset_folder,
+                    val_keys,
+                    folder_with_segs_from_previous_stage=self.folder_with_segs_from_previous_stage,
+                )
                 next_stages = self.configuration_manager.next_stage_names
 
                 if next_stages is not None:
-                    _ = [maybe_mkdir_p(join(self.output_folder_base, 'predicted_next_stage', n)) for n in next_stages]
+                    _ = [maybe_mkdir_p(join(self.output_folder_base, "predicted_next_stage", n)) for n in next_stages]
 
                 results = []
 
                 for i, k in enumerate(dataset_val.identifiers):
-                    proceed = not check_workers_alive_and_busy(segmentation_export_pool, worker_list, results,
-                                                               allowed_num_queued=2)
+                    proceed = not check_workers_alive_and_busy(
+                        segmentation_export_pool, worker_list, results, allowed_num_queued=2
+                    )
                     while not proceed:
                         sleep(0.1)
-                        proceed = not check_workers_alive_and_busy(segmentation_export_pool, worker_list, results,
-                                                                   allowed_num_queued=2)
+                        proceed = not check_workers_alive_and_busy(
+                            segmentation_export_pool, worker_list, results, allowed_num_queued=2
+                        )
 
                     self.print_to_log_file(f"predicting {k}")
                     data, _, seg_prev = dataset_val.load_case(k)
@@ -1507,14 +1524,20 @@ class nnUNetTrainer(object):
 
                     if self.is_cascaded:
                         seg_prev = seg_prev[:]
-                        data = np.vstack((data, convert_labelmap_to_one_hot(seg_prev, self.label_manager.foreground_labels,
-                                                                            output_dtype=data.dtype)))
+                        data = np.vstack(
+                            (
+                                data,
+                                convert_labelmap_to_one_hot(
+                                    seg_prev, self.label_manager.foreground_labels, output_dtype=data.dtype
+                                ),
+                            )
+                        )
                     with warnings.catch_warnings():
                         # ignore 'The given NumPy array is not writable' warning
                         warnings.simplefilter("ignore")
                         data = torch.from_numpy(data)
 
-                    self.print_to_log_file(f'{k}, shape {data.shape}, global rank {self.global_rank}')
+                    self.print_to_log_file(f"{k}, shape {data.shape}, global rank {self.global_rank}")
                     output_filename_truncated = join(validation_output_folder, k)
 
                     prediction = predictor.predict_sliding_window_return_logits(data)
@@ -1523,10 +1546,18 @@ class nnUNetTrainer(object):
                     # this needs to go into background processes
                     results.append(
                         segmentation_export_pool.starmap_async(
-                            export_prediction_from_logits, (
-                                (prediction, properties, self.configuration_manager, self.plans_manager,
-                                 self.dataset_json, output_filename_truncated, save_probabilities),
-                            )
+                            export_prediction_from_logits,
+                            (
+                                (
+                                    prediction,
+                                    properties,
+                                    self.configuration_manager,
+                                    self.plans_manager,
+                                    self.dataset_json,
+                                    output_filename_truncated,
+                                    save_probabilities,
+                                ),
+                            ),
                         )
                     )
                     # for debug purposes
@@ -1537,8 +1568,11 @@ class nnUNetTrainer(object):
                     if next_stages is not None:
                         for n in next_stages:
                             next_stage_config_manager = self.plans_manager.get_configuration(n)
-                            expected_preprocessed_folder = join(nnUNet_preprocessed, self.plans_manager.dataset_name,
-                                                                next_stage_config_manager.data_identifier)
+                            expected_preprocessed_folder = join(
+                                nnUNet_preprocessed,
+                                self.plans_manager.dataset_name,
+                                next_stage_config_manager.data_identifier,
+                            )
                             # next stage may have a different dataset class, do not use self.dataset_class
                             dataset_class = infer_dataset_class(expected_preprocessed_folder)
 
@@ -1550,10 +1584,11 @@ class nnUNetTrainer(object):
                             except FileNotFoundError:
                                 self.print_to_log_file(
                                     f"Predicting next stage {n} failed for case {k} because the preprocessed file is missing! "
-                                    f"Run the preprocessing for this configuration first!")
+                                    f"Run the preprocessing for this configuration first!"
+                                )
                                 continue
 
-                            output_folder = join(self.output_folder_base, 'predicted_next_stage', n)
+                            output_folder = join(self.output_folder_base, "predicted_next_stage", n)
                             output_file_truncated = join(output_folder, k)
 
                             # resample_and_save(prediction, target_shape, output_file_truncated, self.plans_manager,
@@ -1562,16 +1597,24 @@ class nnUNetTrainer(object):
                             #          self.dataset_json,
                             #          default_num_processes,
                             #          dataset_class)
-                            results.append(segmentation_export_pool.starmap_async(
-                                resample_and_save, (
-                                    (prediction, target_shape, output_file_truncated, self.plans_manager,
-                                     self.configuration_manager,
-                                     properties,
-                                     self.dataset_json,
-                                     default_num_processes,
-                                     dataset_class),
+                            results.append(
+                                segmentation_export_pool.starmap_async(
+                                    resample_and_save,
+                                    (
+                                        (
+                                            prediction,
+                                            target_shape,
+                                            output_file_truncated,
+                                            self.plans_manager,
+                                            self.configuration_manager,
+                                            properties,
+                                            self.dataset_json,
+                                            default_num_processes,
+                                            dataset_class,
+                                        ),
+                                    ),
                                 )
-                            ))
+                            )
 
                 _ = [r.get() for r in results]
 
@@ -1586,21 +1629,26 @@ class nnUNetTrainer(object):
                 # one GPU: those ranks are idle at the barrier below, so their share of the CPUs is free. Note that
                 # this is local_world_size, not world_size - processes on the other nodes are of no use to us here.
                 # Unfortunately all other ranks will have to wait for this. Should not take too long in practice.
-                metrics = compute_metrics_on_folder(join(self.preprocessed_dataset_folder_base, 'gt_segmentations'),
-                                                    validation_output_folder,
-                                                    join(validation_output_folder, 'summary.json'),
-                                                    self.plans_manager.image_reader_writer_class(),
-                                                    self.dataset_json["file_ending"],
-                                                    self.label_manager.foreground_regions if self.label_manager.has_regions else
-                                                    self.label_manager.foreground_labels,
-                                                    self.label_manager.ignore_label, chill=True,
-                                                    num_processes=default_num_processes * self.local_world_size)
+                metrics = compute_metrics_on_folder(
+                    join(self.preprocessed_dataset_folder_base, "gt_segmentations"),
+                    validation_output_folder,
+                    join(validation_output_folder, "summary.json"),
+                    self.plans_manager.image_reader_writer_class(),
+                    self.dataset_json["file_ending"],
+                    self.label_manager.foreground_regions
+                    if self.label_manager.has_regions
+                    else self.label_manager.foreground_labels,
+                    self.label_manager.ignore_label,
+                    chill=True,
+                    num_processes=default_num_processes * self.local_world_size,
+                )
                 for label in metrics["mean"]:
                     self.logger.log_summary(f"final_val/class_{label}_dice", metrics["mean"][label]["Dice"])
-                self.logger.log_summary("final_val/foreground_dice", metrics['foreground_mean']["Dice"])
+                self.logger.log_summary("final_val/foreground_dice", metrics["foreground_mean"]["Dice"])
                 self.print_to_log_file("Validation complete", also_print_to_console=True)
-                self.print_to_log_file("Mean Validation Dice: ", (metrics['foreground_mean']["Dice"]),
-                                       also_print_to_console=True)
+                self.print_to_log_file(
+                    "Mean Validation Dice: ", (metrics["foreground_mean"]["Dice"]), also_print_to_console=True
+                )
 
             self.set_deep_supervision_enabled(True)
             compute_gaussian.cache_clear()

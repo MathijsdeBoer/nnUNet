@@ -77,8 +77,14 @@ class nnUNetDataLoader(DataLoader):
         # print('YEAH BOIIIIII')
         return np.random.uniform() < self.oversample_foreground_percent
 
-    def get_bbox(self, identifier: str, data_shape: np.ndarray, force_fg: bool,
-                 overwrite_class: Union[int, Tuple[int, ...]] = None, verbose: bool = False):
+    def get_bbox(
+        self,
+        identifier: str,
+        data_shape: np.ndarray,
+        force_fg: bool,
+        overwrite_class: Union[int, Tuple[int, ...]] = None,
+        verbose: bool = False,
+    ):
         # foreground sampling locations are looked up lazily through self._data.foreground_locations: we need at
         # most a single coordinate here, so there is no point in materializing all of them
         need_to_pad = self.need_to_pad.copy()
@@ -115,8 +121,9 @@ class nnUNetDataLoader(DataLoader):
                 if overwrite_class is not None:
                     # class_keys is the full key table; eligible_classes_or_regions above already populated
                     # it on the legacy backend, which only knows the keys of the case it last read
-                    assert overwrite_class in fg_locations.class_keys, \
+                    assert overwrite_class in fg_locations.class_keys, (
                         'desired class ("overwrite_class") does not have sampling locations (missing key)'
+                    )
 
                 # if we have annotated_classes_key locations and other classes are present, remove the annotated_classes_key from the list
                 # strange formulation needed to circumvent

@@ -1,30 +1,28 @@
-FROM nvidia/cuda:13.2.1-cudnn-runtime-ubuntu24.04
+# Use Runpod PyTorch base image
+FROM runpod/pytorch:1.0.3-cu1300-torch280-ubuntu2404
 
+# Set environment variables
+# This ensures Python output is immediately visible in logs, and configures UV for production use.
 ENV PYTHONUNBUFFERED=1
+
+# Set the working directory
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    wget \
-    python3.12 \
-    python3.12-dev \
-    python3.12-venv \
-    && rm -rf /var/lib/apt/lists/* \
-    && wget -qO- cli.runpod.net | bash
+# Install system dependencies if needed
+RUN apt-get update --yes && \
+    DEBIAN_FRONTEND=noninteractive apt-get install --yes --no-install-recommends \
+    htop \
+    nvtop \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create venv
-RUN python3.12 -m venv /venv
-ENV PATH="/venv/bin:$PATH"
-
-# Upgrade pip
-RUN pip install --upgrade pip setuptools
-
+# Copy project files
 COPY . /app
 
-# Install nnUNet and dependencies
-RUN pip install --no-cache-dir .
+# Install Python dependencies
+RUN python -m pip install --upgrade pip && \
+    pip install .
+# ENV PATH="/app/.venv/bin:$PATH"
 
-# Switch to persistent workspace for outputs
+# Switch to the persistent RunPod workspace so all relative output paths
+# (checkpoints/, logs/, mlruns/, generated/) land in persistent storage.
 WORKDIR /workspace
-
-CMD ["/bin/bash"]

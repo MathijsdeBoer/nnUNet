@@ -10,7 +10,11 @@ from batchgenerators.utilities.file_and_folder_operations import join, load_pick
 
 from nnunetv2.configuration import default_num_processes
 from nnunetv2.training.dataloading.foreground_locations import (
-    MMAP_KWARGS, ForegroundLocationsBase, announce_missing_store, get_foreground_locations)
+    MMAP_KWARGS,
+    ForegroundLocationsBase,
+    announce_missing_store,
+    get_foreground_locations,
+)
 from nnunetv2.training.dataloading.utils import unpack_dataset
 
 
@@ -73,10 +77,7 @@ def comp_blosc2_params(
     if max_chunk_nbytes <= 0:
         raise ValueError("max_chunk_nbytes must be positive.")
 
-    if (
-        max_chunk_to_patch_ratio_per_axis is not None
-        and max_chunk_to_patch_ratio_per_axis < 1.0
-    ):
+    if max_chunk_to_patch_ratio_per_axis is not None and max_chunk_to_patch_ratio_per_axis < 1.0:
         raise ValueError("max_chunk_to_patch_ratio_per_axis must be >= 1.0 or None.")
 
     image_size = tuple(int(i) for i in image_size)
@@ -248,7 +249,7 @@ class nnUNetBaseDataset(ABC):
 
     def get_properties(self, identifier) -> dict:
         """Case properties (spacing, cropping bbox, shapes, ...). Needed for validation/export, not for training."""
-        return load_pickle(join(self.source_folder, identifier + '.pkl'))
+        return load_pickle(join(self.source_folder, identifier + ".pkl"))
 
     def get_shape(self, identifier) -> Tuple[int, ...]:
         """
@@ -300,10 +301,10 @@ class nnUNetDatasetNumpy(nnUNetBaseDataset):
         return data, seg, seg_prev
 
     def get_shape(self, identifier) -> Tuple[int, ...]:
-        data_npy_file = join(self.source_folder, identifier + '.npy')
+        data_npy_file = join(self.source_folder, identifier + ".npy")
         if isfile(data_npy_file):
-            return tuple(np.load(data_npy_file, mmap_mode='r').shape[1:])
-        return tuple(np.load(join(self.source_folder, identifier + '.npz'))['data'].shape[1:])
+            return tuple(np.load(data_npy_file, mmap_mode="r").shape[1:])
+        return tuple(np.load(join(self.source_folder, identifier + ".npz"))["data"].shape[1:])
 
     @staticmethod
     def save_case(data: np.ndarray, seg: np.ndarray, properties: dict, output_filename_truncated: str):
@@ -342,14 +343,14 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
         dparams = {"nthreads": 1}
         data_b2nd_file = join(self.source_folder, identifier + ".b2nd")
 
-        data = blosc2.open(urlpath=data_b2nd_file, mode='r', dparams=dparams, **self.mmap_kwargs)
+        data = blosc2.open(urlpath=data_b2nd_file, mode="r", dparams=dparams, **self.mmap_kwargs)
 
-        seg_b2nd_file = join(self.source_folder, identifier + '_seg.b2nd')
-        seg = blosc2.open(urlpath=seg_b2nd_file, mode='r', dparams=dparams, **self.mmap_kwargs)
+        seg_b2nd_file = join(self.source_folder, identifier + "_seg.b2nd")
+        seg = blosc2.open(urlpath=seg_b2nd_file, mode="r", dparams=dparams, **self.mmap_kwargs)
 
         if self.folder_with_segs_from_previous_stage is not None:
-            prev_seg_b2nd_file = join(self.folder_with_segs_from_previous_stage, identifier + '.b2nd')
-            seg_prev = blosc2.open(urlpath=prev_seg_b2nd_file, mode='r', dparams=dparams, **self.mmap_kwargs)
+            prev_seg_b2nd_file = join(self.folder_with_segs_from_previous_stage, identifier + ".b2nd")
+            seg_prev = blosc2.open(urlpath=prev_seg_b2nd_file, mode="r", dparams=dparams, **self.mmap_kwargs)
         else:
             seg_prev = None
 
@@ -357,8 +358,9 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
 
     def get_shape(self, identifier) -> Tuple[int, ...]:
         # blosc2.open only reads the frame header, no voxels are decompressed
-        return tuple(blosc2.open(urlpath=join(self.source_folder, identifier + '.b2nd'), mode='r',
-                                 **self.mmap_kwargs).shape[1:])
+        return tuple(
+            blosc2.open(urlpath=join(self.source_folder, identifier + ".b2nd"), mode="r", **self.mmap_kwargs).shape[1:]
+        )
 
     @staticmethod
     def _select_filter(arr: np.ndarray, blocks, chunks, codec, clevel) -> "blosc2.Filter":
@@ -382,7 +384,7 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
 
             best_filter, best_bytes = blosc2.Filter.NOFILTER, None
             for f in (blosc2.Filter.NOFILTER, blosc2.Filter.SHUFFLE):
-                cparams = {'codec': codec, 'clevel': clevel, 'nthreads': 4, 'filters': [f]}
+                cparams = {"codec": codec, "clevel": clevel, "nthreads": 4, "filters": [f]}
                 comp = blosc2.asarray(slab, chunks=tuple(slab_shape), blocks=trial_blocks, cparams=cparams)
                 cb = comp.schunk.cbytes
                 if best_bytes is None or cb < best_bytes:
@@ -390,33 +392,37 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
             return best_filter
         except Exception as e:
             from warnings import warn
-            warn(f'_select_filter failed ({e!r}); falling back to NOFILTER.')
+
+            warn(f"_select_filter failed ({e!r}); falling back to NOFILTER.")
             return blosc2.Filter.NOFILTER
 
     @staticmethod
     def save_case(
-            data: np.ndarray,
-            seg: np.ndarray,
-            properties: dict,
-            output_filename_truncated: str,
-            chunks=None,
-            blocks=None,
-            chunks_seg=None,
-            blocks_seg=None,
-            clevel: int = 5,
-            codec=blosc2.Codec.LZ4HC,
-            filters=None,
-            filters_seg=None,
+        data: np.ndarray,
+        seg: np.ndarray,
+        properties: dict,
+        output_filename_truncated: str,
+        chunks=None,
+        blocks=None,
+        chunks_seg=None,
+        blocks_seg=None,
+        clevel: int = 5,
+        codec=blosc2.Codec.LZ4HC,
+        filters=None,
+        filters_seg=None,
     ):
         if chunks is None or blocks is None:
             from warnings import warn
+
             blocks, chunks = comp_blosc2_params(data.shape, (128, 128, 128))
-            warn(f'Warning: Received empty chunks or blocks. Computed with comp_blosc2_params. This is bad because we '
-                 f'do not know the access pattern here (patch size). This should be fixed and not ignored. '
-                 f'Raise an issue at github.com/MIC-DKFZ/nnUNet\n'
-                 f'data shape: {data.shape}\n'
-                 f'chunks {chunks}\n'
-                 f'blocks {blocks}\n')
+            warn(
+                f"Warning: Received empty chunks or blocks. Computed with comp_blosc2_params. This is bad because we "
+                f"do not know the access pattern here (patch size). This should be fixed and not ignored. "
+                f"Raise an issue at github.com/MIC-DKFZ/nnUNet\n"
+                f"data shape: {data.shape}\n"
+                f"chunks {chunks}\n"
+                f"blocks {blocks}\n"
+            )
 
         blosc2.set_nthreads(1)
 
@@ -439,16 +445,16 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
             seg_filters = list(filters_seg)
 
         cparams = {
-            'codec': codec,
-            'filters': data_filters,
-            'nthreads': 4,
-            'clevel': clevel,
+            "codec": codec,
+            "filters": data_filters,
+            "nthreads": 4,
+            "clevel": clevel,
         }
         cparams_seg = {
-            'codec': codec,
-            'filters': seg_filters,
-            'nthreads': 4,
-            'clevel': clevel,
+            "codec": codec,
+            "filters": seg_filters,
+            "nthreads": 4,
+            "clevel": clevel,
         }
 
         # print(output_filename_truncated, data.shape, seg.shape, blocks, chunks, blocks_seg, chunks_seg, data.dtype, seg.dtype)
@@ -461,13 +467,13 @@ class nnUNetDatasetBlosc2(nnUNetBaseDataset):
         )
         blosc2.asarray(
             np.ascontiguousarray(seg),
-            urlpath=output_filename_truncated + '_seg.b2nd',
+            urlpath=output_filename_truncated + "_seg.b2nd",
             chunks=chunks_seg,
             blocks=blocks_seg,
             cparams=cparams_seg,
         )
 
-        write_pickle(properties, output_filename_truncated + '.pkl')
+        write_pickle(properties, output_filename_truncated + ".pkl")
 
     @staticmethod
     def save_seg(seg: np.ndarray, output_filename_truncated: str, chunks_seg=None, blocks_seg=None):

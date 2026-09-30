@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(uv run *)"
+      "Bash(uv run *)",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Recurse 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models\\\\2026-08-06\\\\Dataset002_cSDH' | Select-Object -ExpandProperty FullName\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\MathijsdeBoer\\\\Data\\\\CSDH\\\\Segmentaties' -Directory | Select-Object -ExpandProperty Name | Sort-Object\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Users\\\\MathijsdeBoer\\\\Data\\\\nnUNet\\\\Dataset002_cSDH\\\\imagesTr' | Select-Object -ExpandProperty Name | Sort-Object\")",
+      "Bash(ls -la \"C:\\\\Users\\\\MathijsdeBoer\\\\Documents\\\\Source\\\\Python\\\\nnunet-eval\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Recurse 'C:\\\\Users\\\\MathijsdeBoer\\\\Documents\\\\Source\\\\Python\\\\nnunet-eval\\\\nnunet_eval' | Select-Object -ExpandProperty FullName\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models\\\\2026-08-06\\\\Dataset002_cSDH\\\\eval_new_data_2026-08-28\\\\predictions_cv' | Select-Object -ExpandProperty Name\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models\\\\2026-08-06\\\\Dataset002_cSDH\\\\eval_new_data_2026-08-28\\\\predictions_foldall' | Select-Object -ExpandProperty Name\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models\\\\2026-08-06\\\\Dataset002_cSDH\\\\eval_new_data_2026-08-28\\\\comparison_plots'\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models' | Select-Object Name, LastWriteTime | Sort-Object LastWriteTime\")",
+      "Bash(powershell -NoProfile -Command \"Get-ChildItem -Recurse 'C:\\\\Users\\\\MathijsdeBoer\\\\Augmedit Dropbox\\\\Research\\\\Project_CSDH\\\\Models\\\\2026-07-13' -Depth 2 | Select-Object -ExpandProperty FullName\")"
     ]
   }
 }
